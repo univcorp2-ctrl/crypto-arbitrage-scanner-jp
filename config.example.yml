@@ -1,0 +1,25 @@
+market: BTC/JPY
+min_net_bps: 5
+request_timeout_seconds: 8
+
+exchanges:
+  bitbank:
+    enabled: true
+    taker_fee_bps: 10
+    pair: btc_jpy
+
+  gmocoin:
+    enabled: true
+    taker_fee_bps: 5
+    pair: BTC
+
+  bitflyer:
+    enabled: true
+    taker_fee_bps: 15
+    pair: BTC_JPY
+
+  coincheck:
+    enabled: true
+    # Coincheck fees can differ by pair and account context; adjust from the official fee page.
+    taker_fee_bps: 0
+    pair: btc_jpy
