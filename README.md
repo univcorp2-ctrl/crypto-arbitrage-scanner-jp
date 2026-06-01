@@ -1,3 +1,27 @@
+<!-- AI_README_SETUP_GUIDE_START -->
+## 🧭 画像付き初期設定ガイド
+
+![README 画像付き初期設定ガイド](docs/assets/readme-setup-guide.svg)
+
+このリポジトリ **crypto-arbitrage-scanner-jp** を初めて開いた人は、まずここだけ見れば初期設定から実行、成果物確認まで進められます。
+
+### 最初にやること
+
+1. 必要なSecretや外部サービス設定を確認します。
+2. GitHub Actions または README の実行手順に沿って動かします。
+3. 実行ログと成果物を確認します。
+4. エラー時は Actions の失敗ステップと Secret名を確認します。
+
+### 詳しい画像付きガイド
+
+- [docs/setup-visual-guide.md](docs/setup-visual-guide.md)
+- [docs/image-generation-prompts.md](docs/image-generation-prompts.md)
+
+> SecretやAPIキーの実値は、README、Issue、ログ、画像に絶対に貼らないでください。例では `********` または `YOUR_SECRET_HERE` を使います。
+
+<!-- AI_README_SETUP_GUIDE_END -->
+
+
 # Crypto Arbitrage Scanner JP
 
 APIキー不要の Public API だけを使い、国内暗号資産取引所の JPY 建てスポット板を比較する読み取り専用のアービトラージ検知ツールです。
