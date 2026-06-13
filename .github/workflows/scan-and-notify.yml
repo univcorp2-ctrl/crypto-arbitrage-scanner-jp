@@ -1,0 +1,61 @@
+name: Arb Scanner - Schedule and Notify
+
+on:
+  schedule:
+    - cron: '*/30 * * * *'
+  workflow_dispatch:
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e .
+
+      - name: Copy default config
+        run: cp config.example.yml config.yml
+
+      - name: Run arbitrage scan
+        id: scan
+        run: |
+          set +e
+          OUTPUT=$(arbscan --config config.yml --market BTC/JPY --min-net-bps 5 2>&1)
+          EXIT=$?
+          echo "result<<DELIM" >> $GITHUB_OUTPUT
+          echo "$OUTPUT" >> $GITHUB_OUTPUT
+          echo "DELIM" >> $GITHUB_OUTPUT
+          echo "exit_code=$EXIT" >> $GITHUB_OUTPUT
+          echo "$OUTPUT"
+
+      - name: Notify Telegram via Cloudflare Worker
+        if: always()
+        env:
+          CF_SECRET: ${{ secrets.CF_WORKER_SECRET }}
+        run: |
+          RESULT="${{ steps.scan.outputs.result }}"
+          if echo "$RESULT" | grep -qi "Opportunity"; then
+            STATUS="ALERT arb-opportunity-found"
+          else
+            STATUS="OK scan-complete-no-opportunity"
+          fi
+          FIRST=$(echo "$RESULT" | head -8)
+          ENCODED=$(python3 -c "import urllib.parse,sys; print(urllib.parse.quote(sys.argv[1]))" "$STATUS: $FIRST")
+          if [ -n "$CF_SECRET" ]; then
+            curl -sf "https://x-realestate-autopost.univcorp2.workers.dev/telegram?msg=$ENCODED&secret=$CF_SECRET" || true
+          fi
+
+      - name: Upload scan artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: arb-scan-${{ github.run_number }}
+          path: config.yml
+          retention-days: 7
