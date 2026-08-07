@@ -1,297 +1,601 @@
 from __future__ import annotations
 
+import asyncio
+import os
+from contextlib import suppress
 from dataclasses import dataclass
+from datetime import UTC, datetime
 from decimal import ROUND_DOWN, Decimal
-from math import sqrt
-from statistics import fmean, pstdev
+from pathlib import Path
 from typing import Any
 
-from .models import ExchangeConfig, Opportunity, OrderBook
+from .analytics import calculate_metrics
+from .config import ScannerConfig, load_config
+from .exchange_registry import public_exchange_registry
+from .models import ExchangeConfig, Opportunity, OrderBook, PriceLevel
+from .scanner import calculate_opportunities, fetch_orderbooks
+from .storage import PaperStore
 
-BTC_QUANTUM = Decimal("0.00000001")
-MONEY_QUANTUM = Decimal("0.01")
 BPS = Decimal("10000")
+ONE = Decimal("1")
 
 
-@dataclass(frozen=True)
-class PaperRiskConfig:
-    min_net_bps: Decimal = Decimal("5")
-    max_trade_jpy: Decimal = Decimal("100000")
-    min_trade_jpy: Decimal = Decimal("5000")
+def _env_bool(name: str, default: bool) -> bool:
+    value = os.getenv(name)
+    if value is None:
+        return default
+    return value.strip().lower() in {"1", "true", "yes", "on"}
+
+
+def _env_decimal(name: str, default: str) -> Decimal:
+    value = os.getenv(name)
+    return Decimal(value) if value else Decimal(default)
+
+
+@dataclass
+class PaperSettings:
+    min_net_bps: Decimal = Decimal("12")
+    max_trade_jpy: Decimal = Decimal("50000")
+    min_trade_jpy: Decimal = Decimal("2000")
     slippage_bps: Decimal = Decimal("2")
-    daily_loss_limit_jpy: Decimal = Decimal("50000")
+    rebalance_reserve_bps: Decimal = Decimal("3")
+    interval_seconds: int = 30
+    autostart: bool = True
 
+    @classmethod
+    def from_env(cls) -> PaperSettings:
+        return cls(
+            min_net_bps=_env_decimal("ARB_MIN_NET_BPS", "12"),
+            max_trade_jpy=_env_decimal("ARB_MAX_TRADE_JPY", "50000"),
+            min_trade_jpy=_env_decimal("ARB_MIN_TRADE_JPY", "2000"),
+            slippage_bps=_env_decimal("ARB_SLIPPAGE_BPS", "2"),
+            rebalance_reserve_bps=_env_decimal("ARB_REBALANCE_RESERVE_BPS", "3"),
+            interval_seconds=max(5, int(os.getenv("ARB_INTERVAL_SECONDS", "30"))),
+            autostart=_env_bool("ARB_AUTOSTART_PAPER", True),
+        )
 
-def median_reference_price(books: list[OrderBook]) -> Decimal:
-    mids: list[Decimal] = []
-    for book in books:
-        bid = book.best_bid
-        ask = book.best_ask
-        if bid is not None and ask is not None:
-            mids.append((bid.price + ask.price) / Decimal("2"))
-    if not mids:
-        raise ValueError("no usable order books for reference price")
-    ordered = sorted(mids)
-    midpoint = len(ordered) // 2
-    if len(ordered) % 2:
-        return ordered[midpoint]
-    return (ordered[midpoint - 1] + ordered[midpoint]) / Decimal("2")
-
-
-def initialize_balances(
-    exchange_names: list[str],
-    reference_price: Decimal,
-    *,
-    initial_jpy_per_exchange: Decimal,
-    initial_btc_value_jpy_per_exchange: Decimal,
-) -> dict[str, dict[str, Decimal]]:
-    if reference_price <= 0:
-        raise ValueError("reference price must be positive")
-    btc_amount = (
-        initial_btc_value_jpy_per_exchange / reference_price
-    ).quantize(BTC_QUANTUM, rounding=ROUND_DOWN)
-    return {
-        name: {
-            "JPY": initial_jpy_per_exchange,
-            "BTC": btc_amount,
+    def as_dict(self) -> dict[str, Any]:
+        return {
+            "min_net_bps": float(self.min_net_bps),
+            "max_trade_jpy": float(self.max_trade_jpy),
+            "min_trade_jpy": float(self.min_trade_jpy),
+            "slippage_bps": float(self.slippage_bps),
+            "rebalance_reserve_bps": float(self.rebalance_reserve_bps),
+            "interval_seconds": self.interval_seconds,
+            "autostart": self.autostart,
         }
-        for name in exchange_names
-    }
 
 
-def execute_opportunity(
+def plan_paper_trade(
     opportunity: Opportunity,
-    books: list[OrderBook],
     exchange_configs: tuple[ExchangeConfig, ...],
-    balances: dict[str, dict[str, Decimal]],
-    risk: PaperRiskConfig,
-    *,
-    timestamp: str,
-) -> tuple[dict[str, Any] | None, str]:
-    books_by_exchange = {book.exchange: book for book in books}
-    buy_book = books_by_exchange.get(opportunity.buy_exchange)
-    sell_book = books_by_exchange.get(opportunity.sell_exchange)
-    if buy_book is None or sell_book is None:
-        return None, "missing_orderbook"
+    balances: dict[tuple[str, str], Decimal],
+    settings: PaperSettings,
+) -> dict[str, Any] | None:
+    fee_rates = {item.name: item.taker_fee_rate for item in exchange_configs}
+    buy_fee_rate = fee_rates.get(opportunity.buy_exchange, Decimal("0"))
+    sell_fee_rate = fee_rates.get(opportunity.sell_exchange, Decimal("0"))
+    available_jpy = balances.get((opportunity.buy_exchange, "JPY"), Decimal("0"))
+    available_btc = balances.get((opportunity.sell_exchange, "BTC"), Decimal("0"))
 
-    best_ask = buy_book.best_ask
-    best_bid = sell_book.best_bid
-    if best_ask is None or best_bid is None:
-        return None, "empty_orderbook"
-
-    buy_wallet = balances.get(opportunity.buy_exchange)
-    sell_wallet = balances.get(opportunity.sell_exchange)
-    if buy_wallet is None or sell_wallet is None:
-        return None, "missing_balance"
-
-    fees = {item.name: item.taker_fee_rate for item in exchange_configs}
-    buy_fee_rate = fees.get(opportunity.buy_exchange, Decimal("0"))
-    sell_fee_rate = fees.get(opportunity.sell_exchange, Decimal("0"))
-    slippage_rate = risk.slippage_bps / BPS
-
-    buy_price = (best_ask.price * (Decimal("1") + slippage_rate)).quantize(
-        MONEY_QUANTUM
+    conservative_rate = (
+        ONE
+        + buy_fee_rate
+        + settings.slippage_bps / BPS
+        + settings.rebalance_reserve_bps / BPS
     )
-    sell_price = (best_bid.price * (Decimal("1") - slippage_rate)).quantize(
-        MONEY_QUANTUM
-    )
-
-    max_by_cash = buy_wallet["JPY"] / (buy_price * (Decimal("1") + buy_fee_rate))
-    max_by_inventory = sell_wallet["BTC"]
-    max_by_risk = risk.max_trade_jpy / buy_price
-    quantity = min(
-        opportunity.top_size,
-        max_by_cash,
-        max_by_inventory,
-        max_by_risk,
-    ).quantize(BTC_QUANTUM, rounding=ROUND_DOWN)
-
+    max_by_cash = available_jpy / (opportunity.buy_ask * conservative_rate)
+    max_by_limit = settings.max_trade_jpy / opportunity.buy_ask
+    quantity = min(opportunity.top_size, available_btc, max_by_cash, max_by_limit)
+    quantity = quantity.quantize(Decimal("0.00000001"), rounding=ROUND_DOWN)
     if quantity <= 0:
-        return None, "insufficient_inventory"
+        return None
 
-    buy_notional = buy_price * quantity
-    sell_notional = sell_price * quantity
-    if buy_notional < risk.min_trade_jpy:
-        return None, "below_min_trade"
+    buy_notional = opportunity.buy_ask * quantity
+    sell_notional = opportunity.sell_bid * quantity
+    if buy_notional < settings.min_trade_jpy:
+        return None
 
     buy_fee = buy_notional * buy_fee_rate
     sell_fee = sell_notional * sell_fee_rate
-    cash_required = buy_notional + buy_fee
-    cash_received = sell_notional - sell_fee
-    net_pnl = cash_received - cash_required
-    net_bps = (net_pnl / cash_required) * BPS
-
-    if net_bps < risk.min_net_bps:
-        return None, "spread_below_risk_threshold"
-
-    buy_wallet["JPY"] -= cash_required
-    buy_wallet["BTC"] += quantity
-    sell_wallet["BTC"] -= quantity
-    sell_wallet["JPY"] += cash_received
-
-    observed_slippage = (
-        (buy_price - best_ask.price) * quantity
-        + (best_bid.price - sell_price) * quantity
+    slippage = ((buy_notional + sell_notional) / Decimal("2")) * (
+        settings.slippage_bps / BPS
     )
-    execution_gross_bps = ((sell_price - buy_price) / buy_price) * BPS
-    compact_timestamp = (
-        timestamp.replace("-", "").replace(":", "").replace("+", "p")
+    reserve = ((buy_notional + sell_notional) / Decimal("2")) * (
+        settings.rebalance_reserve_bps / BPS
     )
-    trade_id = (
-        f"paper-{compact_timestamp}-{opportunity.buy_exchange}-"
-        f"{opportunity.sell_exchange}"
-    )
+    buy_debit = buy_notional + buy_fee + slippage / 2 + reserve / 2
+    sell_credit = sell_notional - sell_fee - slippage / 2 - reserve / 2
+    net_pnl = sell_credit - buy_debit
+    if net_pnl <= 0 or buy_debit > available_jpy:
+        return None
 
-    return (
-        {
-            "id": trade_id,
-            "timestamp": timestamp,
-            "mode": "paper",
-            "source": "public_orderbook_paper",
+    net_spread_bps = net_pnl / buy_debit * BPS
+    if net_spread_bps < settings.min_net_bps:
+        return None
+
+    return {
+        "market": opportunity.market,
+        "buy_exchange": opportunity.buy_exchange,
+        "sell_exchange": opportunity.sell_exchange,
+        "quantity_btc": float(quantity),
+        "buy_price_jpy": float(opportunity.buy_ask),
+        "sell_price_jpy": float(opportunity.sell_bid),
+        "buy_notional_jpy": float(buy_notional),
+        "sell_notional_jpy": float(sell_notional),
+        "buy_debit_jpy": float(buy_debit),
+        "sell_credit_jpy": float(sell_credit),
+        "gross_pnl_jpy": float(sell_notional - buy_notional),
+        "fees_jpy": float(buy_fee + sell_fee),
+        "slippage_jpy": float(slippage),
+        "rebalance_reserve_jpy": float(reserve),
+        "net_pnl_jpy": float(net_pnl),
+        "net_spread_bps": float(net_spread_bps),
+    }
+
+
+class PaperTradingService:
+    def __init__(self, store: PaperStore, settings: PaperSettings | None = None) -> None:
+        self.store = store
+        self.store.initialize()
+        self.settings = settings or PaperSettings.from_env()
+        self._load_persisted_settings()
+        self.config = self._load_scanner_config()
+        self.running = False
+        self._task: asyncio.Task[None] | None = None
+        self._run_lock = asyncio.Lock()
+        self.last_run_at: str | None = None
+        self.last_result: dict[str, Any] | None = None
+
+    def _load_persisted_settings(self) -> None:
+        decimal_fields = (
+            "min_net_bps",
+            "max_trade_jpy",
+            "min_trade_jpy",
+            "slippage_bps",
+            "rebalance_reserve_bps",
+        )
+        for field in decimal_fields:
+            value = self.store.get_setting(f"paper.{field}")
+            if value is not None:
+                setattr(self.settings, field, Decimal(value))
+        interval = self.store.get_setting("paper.interval_seconds")
+        if interval is not None:
+            self.settings.interval_seconds = max(5, int(interval))
+
+    def _load_scanner_config(self) -> ScannerConfig:
+        config_path = Path(os.getenv("ARB_CONFIG_PATH", "config.yml"))
+        if config_path.exists():
+            try:
+                return load_config(config_path)
+            except (OSError, ValueError) as exc:
+                self.store.record_event(
+                    level="warning",
+                    kind="config_fallback",
+                    message="設定ファイルを読めないため安全な内蔵設定を使用します。",
+                    details={"path": str(config_path), "error": str(exc)},
+                )
+        return ScannerConfig(
+            market="BTC/JPY",
+            min_net_bps=self.settings.min_net_bps,
+            request_timeout_seconds=8.0,
+            exchanges=(
+                ExchangeConfig("bitbank", True, "btc_jpy", Decimal("10")),
+                ExchangeConfig("gmocoin", True, "BTC", Decimal("5")),
+                ExchangeConfig("bitflyer", True, "BTC_JPY", Decimal("15")),
+                ExchangeConfig("coincheck", True, "btc_jpy", Decimal("0")),
+            ),
+        )
+
+    async def start(self) -> dict[str, Any]:
+        if self.running:
+            return {"running": True, "message": "ペーパーエンジンは既に稼働中です。"}
+        if self.kill_switch_enabled:
+            return {"running": False, "message": "停止スイッチが有効です。"}
+        self.running = True
+        self._task = asyncio.create_task(self._loop(), name="arb-paper-loop")
+        self.store.record_event(
+            level="info",
+            kind="paper_started",
+            message="ペーパートレードエンジンを開始しました。",
+        )
+        return {"running": True, "message": "ペーパートレードを開始しました。"}
+
+    async def stop(self) -> dict[str, Any]:
+        self.running = False
+        if self._task is not None:
+            self._task.cancel()
+            with suppress(asyncio.CancelledError):
+                await self._task
+            self._task = None
+        self.store.record_event(
+            level="info",
+            kind="paper_stopped",
+            message="ペーパートレードエンジンを停止しました。",
+        )
+        return {"running": False, "message": "ペーパートレードを停止しました。"}
+
+    async def _loop(self) -> None:
+        while self.running:
+            try:
+                await self.run_once()
+            except Exception as exc:
+                self.store.record_event(
+                    level="error",
+                    kind="paper_loop_error",
+                    message="ペーパーサイクルでエラーが発生しました。",
+                    details={"error": str(exc)},
+                )
+            await asyncio.sleep(self.settings.interval_seconds)
+
+    @property
+    def kill_switch_enabled(self) -> bool:
+        return self.store.get_setting("risk.kill_switch") == "true"
+
+    async def set_kill_switch(self, enabled: bool) -> dict[str, Any]:
+        self.store.set_setting("risk.kill_switch", "true" if enabled else "false")
+        if enabled and self.running:
+            await self.stop()
+        self.store.record_event(
+            level="warning" if enabled else "info",
+            kind="kill_switch",
+            message="停止スイッチを有効化しました。" if enabled else "停止スイッチを解除しました。",
+        )
+        return {"enabled": enabled, "running": self.running}
+
+    def update_settings(self, values: dict[str, Any]) -> dict[str, Any]:
+        for field in (
+            "min_net_bps",
+            "max_trade_jpy",
+            "min_trade_jpy",
+            "slippage_bps",
+            "rebalance_reserve_bps",
+        ):
+            value = Decimal(str(values[field]))
+            setattr(self.settings, field, value)
+            self.store.set_setting(f"paper.{field}", str(value))
+        interval = max(5, int(values["interval_seconds"]))
+        self.settings.interval_seconds = interval
+        self.store.set_setting("paper.interval_seconds", str(interval))
+        self.store.record_event(
+            level="info",
+            kind="settings_updated",
+            message="ペーパー運用設定を更新しました。",
+            details=self.settings.as_dict(),
+        )
+        return self.settings.as_dict()
+
+    async def run_once(self) -> dict[str, Any]:
+        async with self._run_lock:
+            now = datetime.now(UTC).replace(microsecond=0)
+            if self.kill_switch_enabled:
+                result = {
+                    "status": "blocked_by_kill_switch",
+                    "recorded_at": now.isoformat(),
+                    "data_source": "none",
+                    "books": [],
+                    "opportunities": [],
+                    "execution": None,
+                    "errors": {},
+                }
+                self.last_result = result
+                self.last_run_at = now.isoformat()
+                return result
+
+            books, errors = await fetch_orderbooks(self.config)
+            data_source = "live_public_orderbooks"
+            if len(books) < 2:
+                books = self._synthetic_books()
+                data_source = "simulated_research_snapshot"
+
+            threshold = (
+                self.settings.min_net_bps
+                + self.settings.slippage_bps
+                + self.settings.rebalance_reserve_bps
+            )
+            opportunities = calculate_opportunities(
+                books,
+                self.config.exchanges,
+                min_net_bps=threshold,
+            )
+            balances = {
+                key: Decimal(str(value)) for key, value in self.store.balance_map().items()
+            }
+            plan = None
+            for opportunity in opportunities:
+                plan = plan_paper_trade(
+                    opportunity,
+                    self.config.exchanges,
+                    balances,
+                    self.settings,
+                )
+                if plan is not None:
+                    break
+
+            reference_price = self._reference_price(books)
+            execution = None
+            if plan is not None:
+                execution = self._execute_plan(
+                    plan=plan,
+                    balances=balances,
+                    reference_price=reference_price,
+                    data_source=data_source,
+                    timestamp=now,
+                )
+            else:
+                self._record_mark_to_market(
+                    balances=balances,
+                    reference_price=reference_price,
+                    data_source=data_source,
+                    timestamp=now,
+                )
+
+            result = {
+                "status": "simulated_trade" if execution else "no_trade",
+                "recorded_at": now.isoformat(),
+                "data_source": data_source,
+                "books": self._book_summaries(books),
+                "opportunities": [self._opportunity_dict(item) for item in opportunities[:20]],
+                "execution": execution,
+                "errors": errors,
+            }
+            self.last_result = result
+            self.last_run_at = now.isoformat()
+            self.store.record_event(
+                level="info" if not errors else "warning",
+                kind="paper_cycle",
+                message=(
+                    "ペーパー約定を記録しました。"
+                    if execution
+                    else "板を確認しましたが執行条件には達しませんでした。"
+                ),
+                details={
+                    "data_source": data_source,
+                    "opportunity_count": len(opportunities),
+                    "errors": errors,
+                },
+            )
+            return result
+
+    def _execute_plan(
+        self,
+        *,
+        plan: dict[str, Any],
+        balances: dict[tuple[str, str], Decimal],
+        reference_price: Decimal,
+        data_source: str,
+        timestamp: datetime,
+    ) -> dict[str, Any]:
+        buy_exchange = str(plan["buy_exchange"])
+        sell_exchange = str(plan["sell_exchange"])
+        quantity = Decimal(str(plan["quantity_btc"]))
+        buy_debit = Decimal(str(plan["buy_debit_jpy"]))
+        sell_credit = Decimal(str(plan["sell_credit_jpy"]))
+
+        balances[(buy_exchange, "JPY")] -= buy_debit
+        balances[(buy_exchange, "BTC")] = balances.get(
+            (buy_exchange, "BTC"), Decimal("0")
+        ) + quantity
+        balances[(sell_exchange, "BTC")] -= quantity
+        balances[(sell_exchange, "JPY")] = balances.get(
+            (sell_exchange, "JPY"), Decimal("0")
+        ) + sell_credit
+
+        cash = sum(
+            amount for (exchange, asset), amount in balances.items() if asset == "JPY"
+        )
+        btc = sum(
+            amount for (exchange, asset), amount in balances.items() if asset == "BTC"
+        )
+        crypto_value = btc * reference_price
+        equity = cash + crypto_value
+        executed_at = timestamp.isoformat()
+        trade = {
+            "executed_at": executed_at,
+            "market": str(plan["market"]),
+            "buy_exchange": buy_exchange,
+            "sell_exchange": sell_exchange,
+            "quantity_btc": float(quantity),
+            "buy_price_jpy": float(plan["buy_price_jpy"]),
+            "sell_price_jpy": float(plan["sell_price_jpy"]),
+            "gross_pnl_jpy": float(plan["gross_pnl_jpy"]),
+            "fees_jpy": float(plan["fees_jpy"]),
+            "slippage_jpy": float(plan["slippage_jpy"]),
+            "rebalance_reserve_jpy": float(plan["rebalance_reserve_jpy"]),
+            "net_pnl_jpy": float(plan["net_pnl_jpy"]),
+            "net_spread_bps": float(plan["net_spread_bps"]),
+            "status": "simulated_filled",
+            "source": data_source,
+        }
+        updates = {key: float(value) for key, value in balances.items()}
+        snapshot = {
+            "recorded_at": executed_at,
+            "equity_jpy": float(equity),
+            "cash_jpy": float(cash),
+            "crypto_jpy": float(crypto_value),
+            "reference_price_jpy": float(reference_price),
+            "daily_pnl_jpy": float(plan["net_pnl_jpy"]),
+            "data_source": data_source,
+        }
+        self.store.record_trade_and_state(
+            trade=trade,
+            balance_updates=updates,
+            equity=snapshot,
+        )
+        return trade
+
+    def _record_mark_to_market(
+        self,
+        *,
+        balances: dict[tuple[str, str], Decimal],
+        reference_price: Decimal,
+        data_source: str,
+        timestamp: datetime,
+    ) -> None:
+        cash = sum(amount for (_, asset), amount in balances.items() if asset == "JPY")
+        btc = sum(amount for (_, asset), amount in balances.items() if asset == "BTC")
+        crypto_value = btc * reference_price
+        self.store.record_equity(
+            {
+                "recorded_at": timestamp.isoformat(),
+                "equity_jpy": float(cash + crypto_value),
+                "cash_jpy": float(cash),
+                "crypto_jpy": float(crypto_value),
+                "reference_price_jpy": float(reference_price),
+                "daily_pnl_jpy": 0.0,
+                "data_source": data_source,
+            }
+        )
+
+    def _reference_price(self, books: list[OrderBook]) -> Decimal:
+        mids = [
+            (book.best_bid.price + book.best_ask.price) / 2
+            for book in books
+            if book.best_bid is not None and book.best_ask is not None
+        ]
+        if mids:
+            return sum(mids, Decimal("0")) / Decimal(len(mids))
+        latest = self.store.latest_equity()
+        return Decimal(str(latest["reference_price_jpy"] if latest else 10_200_000))
+
+    def _synthetic_books(self) -> list[OrderBook]:
+        latest = self.store.latest_equity()
+        reference = Decimal(str(latest["reference_price_jpy"] if latest else 10_200_000))
+        cycle = int(datetime.now(UTC).timestamp() // 60) % 5
+        normal_shifts = {
+            "bitbank": Decimal("-2"),
+            "gmocoin": Decimal("1"),
+            "bitflyer": Decimal("-1"),
+            "coincheck": Decimal("2"),
+        }
+        opportunity_shifts = {
+            "bitbank": Decimal("-22"),
+            "gmocoin": Decimal("24"),
+            "bitflyer": Decimal("0"),
+            "coincheck": Decimal("3"),
+        }
+        shifts = opportunity_shifts if cycle == 0 else normal_shifts
+        spread_bps = Decimal("4")
+        books: list[OrderBook] = []
+        for index, config in enumerate(self.config.exchanges):
+            if not config.enabled:
+                continue
+            mid_shift = shifts.get(config.name, Decimal("0"))
+            bid = reference * (ONE + (mid_shift - spread_bps / 2) / BPS)
+            ask = reference * (ONE + (mid_shift + spread_bps / 2) / BPS)
+            amount = Decimal("0.012") + Decimal(index) * Decimal("0.002")
+            books.append(
+                OrderBook(
+                    exchange=config.name,
+                    market=self.config.market,
+                    raw_symbol=config.pair,
+                    bids=(PriceLevel(price=bid, amount=amount),),
+                    asks=(PriceLevel(price=ask, amount=amount),),
+                    timestamp=datetime.now(UTC).replace(microsecond=0).isoformat(),
+                )
+            )
+        return books
+
+    @staticmethod
+    def _book_summaries(books: list[OrderBook]) -> list[dict[str, Any]]:
+        result: list[dict[str, Any]] = []
+        for book in books:
+            if book.best_bid is None or book.best_ask is None:
+                continue
+            result.append(
+                {
+                    "exchange": book.exchange,
+                    "market": book.market,
+                    "best_bid": float(book.best_bid.price),
+                    "best_ask": float(book.best_ask.price),
+                    "bid_size": float(book.best_bid.amount),
+                    "ask_size": float(book.best_ask.amount),
+                    "timestamp": book.timestamp,
+                }
+            )
+        return result
+
+    @staticmethod
+    def _opportunity_dict(opportunity: Opportunity) -> dict[str, Any]:
+        return {
             "market": opportunity.market,
             "buy_exchange": opportunity.buy_exchange,
             "sell_exchange": opportunity.sell_exchange,
-            "quantity_btc": quantity,
-            "buy_price_jpy": buy_price,
-            "sell_price_jpy": sell_price,
-            "buy_notional_jpy": buy_notional,
-            "sell_notional_jpy": sell_notional,
-            "fees_jpy": buy_fee + sell_fee,
-            "slippage_cost_jpy": observed_slippage,
-            "observed_gross_spread_bps": opportunity.gross_spread_bps,
-            "execution_gross_spread_bps": execution_gross_bps,
-            "net_spread_bps": net_bps,
-            "net_pnl_jpy": net_pnl,
-            "status": "filled",
-        },
-        "executed",
-    )
+            "buy_ask": float(opportunity.buy_ask),
+            "sell_bid": float(opportunity.sell_bid),
+            "top_size": float(opportunity.top_size),
+            "gross_spread_bps": float(opportunity.gross_spread_bps),
+            "net_spread_bps": float(opportunity.net_spread_bps),
+            "net_profit_quote": float(opportunity.net_profit_quote),
+        }
 
+    def dashboard_payload(self) -> dict[str, Any]:
+        equity = self.store.list_equity()
+        trades = self.store.list_trades()
+        performance = calculate_metrics(equity, trades)
+        latest = equity[-1] if equity else None
+        reference_price = float(latest["reference_price_jpy"]) if latest else 0.0
+        balances = self._asset_rows(reference_price)
+        exchanges = public_exchange_registry()
+        error_by_exchange = (self.last_result or {}).get("errors", {})
+        for venue in exchanges:
+            venue["runtime_status"] = (
+                "error" if venue["id"] in error_by_exchange else "ready"
+            )
+            venue["last_error"] = error_by_exchange.get(venue["id"])
 
-def portfolio_equity(
-    balances: dict[str, dict[str, Decimal]],
-    reference_price: Decimal,
-) -> Decimal:
-    return sum(
-        (
-            wallet.get("JPY", Decimal("0"))
-            + wallet.get("BTC", Decimal("0")) * reference_price
-            for wallet in balances.values()
-        ),
-        start=Decimal("0"),
-    )
+        return {
+            "generated_at": datetime.now(UTC).replace(microsecond=0).isoformat(),
+            "mode": "paper",
+            "mode_label": "SIMULATED / 実注文なし",
+            "engine": {
+                "running": self.running,
+                "last_run_at": self.last_run_at,
+                "settings": self.settings.as_dict(),
+            },
+            "risk": {
+                "kill_switch": self.kill_switch_enabled,
+                "live_order_routing": False,
+                "withdrawal_routing": False,
+                "secret_values_exposed": False,
+                "default_bind": "127.0.0.1",
+            },
+            "performance": performance,
+            "equity": equity,
+            "assets": balances,
+            "trades": trades,
+            "exchanges": exchanges,
+            "last_cycle": self.last_result,
+            "events": self.store.list_events(),
+            "data_disclosure": {
+                "seeded_history": "seeded_research_demo",
+                "live_market_data": "各取引所の公開板。失敗時は明示的な模擬スナップショット。",
+                "execution": "全約定はペーパー計算であり、取引所へ注文を送信しません。",
+            },
+        }
 
-
-def calculate_metrics(
-    equity_history: list[dict[str, Any]],
-    trades: list[dict[str, Any]],
-    initial_capital_jpy: Decimal,
-) -> tuple[dict[str, float | int | None], list[dict[str, float | str]]]:
-    if initial_capital_jpy <= 0:
-        raise ValueError("initial capital must be positive")
-
-    daily_last: dict[str, float] = {}
-    for point in sorted(equity_history, key=lambda item: str(item["timestamp"])):
-        daily_last[str(point["timestamp"])[:10]] = float(point["equity_jpy"])
-
-    previous = float(initial_capital_jpy)
-    peak = previous
-    returns: list[float] = []
-    daily_rows: list[dict[str, float | str]] = []
-    for date, equity in sorted(daily_last.items()):
-        pnl = equity - previous
-        daily_return = pnl / previous if previous else 0.0
-        peak = max(peak, equity)
-        drawdown_pct = ((equity / peak) - 1.0) * 100 if peak else 0.0
-        daily_rows.append(
+    def _asset_rows(self, reference_price: float) -> list[dict[str, Any]]:
+        grouped: dict[str, dict[str, float]] = {}
+        for row in self.store.list_balances():
+            venue = str(row["exchange"])
+            grouped.setdefault(venue, {"JPY": 0.0, "BTC": 0.0})
+            grouped[venue][str(row["asset"])] = float(row["amount"])
+        total_btc = sum(values["BTC"] for values in grouped.values())
+        target_btc = total_btc / len(grouped) if grouped else 0.0
+        totals = {
+            venue: values["JPY"] + values["BTC"] * reference_price
+            for venue, values in grouped.items()
+        }
+        grand_total = sum(totals.values())
+        return [
             {
-                "date": date,
-                "equity_jpy": round(equity, 2),
-                "pnl_jpy": round(pnl, 2),
-                "return_pct": round(daily_return * 100, 6),
-                "drawdown_pct": round(drawdown_pct, 6),
+                "exchange": venue,
+                "jpy": values["JPY"],
+                "btc": values["BTC"],
+                "btc_value_jpy": values["BTC"] * reference_price,
+                "total_jpy": totals[venue],
+                "allocation": totals[venue] / grand_total if grand_total else 0.0,
+                "btc_vs_equal_target": values["BTC"] - target_btc,
             }
-        )
-        returns.append(daily_return)
-        previous = equity
-
-    usable_returns = returns[1:] if len(returns) > 1 else returns
-    return_mean = fmean(usable_returns) if usable_returns else 0.0
-    return_std = pstdev(usable_returns) if len(usable_returns) > 1 else 0.0
-    sharpe = return_mean / return_std * sqrt(365) if return_std > 0 else None
-
-    downside_squares = [min(item, 0.0) ** 2 for item in usable_returns]
-    downside_deviation = sqrt(fmean(downside_squares)) if downside_squares else 0.0
-    sortino = (
-        return_mean / downside_deviation * sqrt(365)
-        if downside_deviation > 0
-        else None
-    )
-
-    last_equity = daily_rows[-1]["equity_jpy"] if daily_rows else float(initial_capital_jpy)
-    total_return = float(last_equity) / float(initial_capital_jpy) - 1.0
-    periods = max(len(daily_rows) - 1, 1)
-    growth = max(float(last_equity) / float(initial_capital_jpy), 0.000001)
-    annualized_return = growth ** (365 / periods) - 1.0
-    max_drawdown_pct = min(
-        (float(item["drawdown_pct"]) for item in daily_rows),
-        default=0.0,
-    )
-    calmar = (
-        annualized_return / abs(max_drawdown_pct / 100)
-        if max_drawdown_pct < 0
-        else None
-    )
-    annualized_volatility = return_std * sqrt(365) * 100
-
-    trade_pnls = [float(item.get("net_pnl_jpy", 0)) for item in trades]
-    wins = [item for item in trade_pnls if item > 0]
-    losses = [item for item in trade_pnls if item < 0]
-    gross_profit = sum(wins)
-    gross_loss = abs(sum(losses))
-    profit_factor = gross_profit / gross_loss if gross_loss > 0 else None
-    realized_pnl = sum(trade_pnls)
-    total_pnl = float(last_equity) - float(initial_capital_jpy)
-    total_fees = sum(float(item.get("fees_jpy", 0)) for item in trades)
-    total_slippage = sum(float(item.get("slippage_cost_jpy", 0)) for item in trades)
-
-    metrics: dict[str, float | int | None] = {
-        "portfolio_value_jpy": round(float(last_equity), 2),
-        "initial_capital_jpy": round(float(initial_capital_jpy), 2),
-        "total_pnl_jpy": round(total_pnl, 2),
-        "realized_pnl_jpy": round(realized_pnl, 2),
-        "unrealized_pnl_jpy": round(total_pnl - realized_pnl, 2),
-        "total_return_pct": round(total_return * 100, 6),
-        "annualized_return_pct": round(annualized_return * 100, 6),
-        "today_pnl_jpy": round(
-            float(daily_rows[-1]["pnl_jpy"]) if daily_rows else 0.0,
-            2,
-        ),
-        "sharpe_ratio": round(sharpe, 4) if sharpe is not None else None,
-        "sortino_ratio": round(sortino, 4) if sortino is not None else None,
-        "calmar_ratio": round(calmar, 4) if calmar is not None else None,
-        "annualized_volatility_pct": round(annualized_volatility, 6),
-        "max_drawdown_pct": round(max_drawdown_pct, 6),
-        "win_rate_pct": round(len(wins) / len(trade_pnls) * 100, 4)
-        if trade_pnls
-        else 0.0,
-        "profit_factor": round(profit_factor, 4)
-        if profit_factor is not None
-        else None,
-        "trade_count": len(trades),
-        "average_trade_pnl_jpy": round(
-            fmean(trade_pnls) if trade_pnls else 0.0,
-            2,
-        ),
-        "fees_jpy": round(total_fees, 2),
-        "slippage_jpy": round(total_slippage, 2),
-        "best_day_jpy": round(
-            max((float(item["pnl_jpy"]) for item in daily_rows), default=0.0),
-            2,
-        ),
-        "worst_day_jpy": round(
-            min((float(item["pnl_jpy"]) for item in daily_rows), default=0.0),
-            2,
-        ),
-    }
-    return metrics, daily_rows
+            for venue, values in sorted(grouped.items())
+        ]
