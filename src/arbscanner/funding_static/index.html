@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <meta name="description" content="日本居住者向けファンディングレート・アービトラージ監視とペーパー運用コンソール">
+  <title>Funding Control JP</title>
+  <link rel="stylesheet" href="/assets/funding.css">
+</head>
+<body>
+  <div class="shell">
+    <aside class="sidebar">
+      <div class="brand"><span class="brand-mark">F</span><div><strong>FUNDING CONTROL</strong><small>Japan Neutral Carry</small></div></div>
+      <nav aria-label="メインナビゲーション">
+        <button class="nav active" data-page="overview">◫ <span>運用概要</span></button>
+        <button class="nav" data-page="strategy">⌁ <span>戦略パラメーター</span></button>
+        <button class="nav" data-page="venues">◎ <span>取引所ポリシー</span></button>
+        <button class="nav" data-page="api">⌘ <span>API接続</span></button>
+        <button class="nav" data-page="rebalance">⇄ <span>資金配置</span></button>
+        <button class="nav" data-page="audit">◇ <span>監査・停止</span></button>
+      </nav>
+      <div class="side-bottom">
+        <div class="mode"><i></i><div><strong id="mode-label">PUBLIC / PAPER</strong><small>出金ルーターなし</small></div></div>
+        <p>公開版はPublic APIだけを利用します。APIキー登録と自動ペーパー運転は、127.0.0.1で起動した非公開版だけで有効です。</p>
+      </div>
+    </aside>
+
+    <main>
+      <header class="topbar">
+        <div><p class="eyebrow">BTC / JPY · SPOT + CRYPTO CFD</p><h1 id="page-title">運用概要</h1></div>
+        <div class="top-actions"><div class="fresh"><span id="health-dot"></span><div><small>最終更新</small><strong id="updated-at">未取得</strong></div></div><button id="refresh" class="button secondary">更新</button></div>
+      </header>
+      <div id="notice" class="notice hidden" role="status"></div>
+      <div class="warning-strip"><strong>実資金は未接続</strong><span>収益予測は保証ではありません。費用・部分約定・ベーシス・規制変更を含めて判定します。</span></div>
+
+      <section class="page active" data-panel="overview">
+        <div class="metrics primary-metrics">
+          <article class="metric hero"><span>次回 Funding</span><strong id="funding-rate">—</strong><small id="funding-side">—</small></article>
+          <article class="metric"><span>推定 Net</span><strong id="net-bps">—</strong><small id="net-yen">—</small></article>
+          <article class="metric"><span>現物 / CFD</span><strong id="spot-price">—</strong><small id="cfd-price">—</small></article>
+          <article class="metric"><span>Basis</span><strong id="basis-bps">—</strong><small>CFD mid − Spot mid</small></article>
+          <article class="metric"><span>次回授受</span><strong id="next-settlement">—</strong><small>日本時間</small></article>
+          <article class="metric"><span>判定</span><strong id="decision">—</strong><small id="decision-reason">—</small></article>
+        </div>
+        <div class="grid two wide-left">
+          <article class="panel">
+            <div class="panel-head"><div><p class="eyebrow">FUNDING HISTORY</p><h2>直近の授受率</h2></div><span class="chip">8時間間隔</span></div>
+            <svg id="rate-chart" class="chart" viewBox="0 0 900 300" role="img" aria-label="ファンディングレート履歴"></svg>
+          </article>
+          <article class="panel decision-panel">
+            <div class="panel-head"><div><p class="eyebrow">COST WATERFALL</p><h2>採算内訳</h2></div></div>
+            <div id="cost-waterfall" class="waterfall"></div>
+          </article>
+        </div>
+        <div class="grid two">
+          <article class="panel"><div class="panel-head"><div><p class="eyebrow">POSITION BLUEPRINT</p><h2>デルタニュートラル構成</h2></div></div><div id="position-blueprint" class="legs"></div></article>
+          <article class="panel"><div class="panel-head"><div><p class="eyebrow">SAFETY GATES</p><h2>エントリー条件</h2></div></div><div id="gate-list" class="gate-list"></div></article>
+        </div>
+      </section>
+
+      <section class="page" data-panel="strategy">
+        <div class="intro"><div><p class="eyebrow">PARAMETER LAB</p><h2>費用を全て入れてから判断する</h2></div><p>画面の値は秘密情報ではないためブラウザへ保存できます。ローカル版ではバックエンドにも保存されます。</p></div>
+        <div class="grid two wide-left">
+          <article class="panel">
+            <form id="strategy-form" class="form-grid">
+              <label>想定元本 (JPY)<input name="notional_jpy" type="number" min="1000" step="1000"></label>
+              <label>予定保有時間<input name="hold_hours" type="number" min="1" step="1"><span>hours</span></label>
+              <label>現物Taker片道<input name="spot_taker_fee_bps" type="number" min="0" step="0.1"><span>bps</span></label>
+              <label>CFD Taker片道<input name="derivative_taker_fee_bps" type="number" min="0" step="0.1"><span>bps</span></label>
+              <label>1約定スリッページ<input name="slippage_bps_per_fill" type="number" min="0" step="0.1"><span>bps</span></label>
+              <label>日次レバレッジポイント<input name="leverage_point_daily_bps" type="number" min="0" step="0.1"><span>bps</span></label>
+              <label>決済Basisバッファ<input name="basis_exit_buffer_bps" type="number" min="0" step="0.1"><span>bps</span></label>
+              <label>追加リスクバッファ<input name="risk_buffer_bps" type="number" min="0" step="0.1"><span>bps</span></label>
+              <label>最低Net<input name="min_expected_net_bps" type="number" min="0" step="0.1"><span>bps</span></label>
+              <label>最大絶対Basis<input name="max_abs_basis_bps" type="number" min="0" step="1"><span>bps</span></label>
+              <label>データ鮮度上限<input name="max_data_age_seconds" type="number" min="1" step="1"><span>sec</span></label>
+              <label>1回最大数量<input name="max_order_btc" type="number" min="0.001" step="0.001"><span>BTC</span></label>
+              <label>最低証拠金バッファ<input name="min_margin_keep_rate" type="number" min="1" step="0.1"><span>x</span></label>
+              <label>日次損失停止<input name="max_daily_loss_jpy" type="number" min="1000" step="1000"><span>JPY</span></label>
+              <button class="button primary" type="submit">設定を保存して再計算</button>
+            </form>
+          </article>
+          <article class="panel sticky-card"><p class="eyebrow">BREAK EVEN</p><h2>損益分岐</h2><strong id="break-even" class="big-value">—</strong><p>1回のFundingあたり必要な授受率。設定した保有期間で売買費用を償却して計算します。</p><div id="parameter-summary" class="mini-list"></div><button id="reset-settings" class="button secondary full">保守的な初期値へ戻す</button></article>
+        </div>
+      </section>
+
+      <section class="page" data-panel="venues">
+        <div class="intro"><div><p class="eyebrow">JP RESIDENT POLICY</p><h2>ライブ候補と調査専用を分離</h2></div><p>規制状態は日付付きデータとして分離し、更新時に戦略コードを変更せずルーティングを停止できます。</p></div>
+        <div id="venue-grid" class="venue-grid"></div>
+      </section>
+
+      <section class="page" data-panel="api">
+        <div class="security"><span>⌾</span><div><strong>APIキーは公開Pagesへ入力しません</strong><p>この画面がlocalhostで配信されている場合だけ登録欄を有効化します。登録前にbitFlyerの権限一覧を照合し、出金・送付・振替権限を検出したキーは拒否します。</p></div></div>
+        <div class="grid two">
+          <article class="panel">
+            <div class="panel-head"><div><p class="eyebrow">BITFLYER VAULT</p><h2>暗号化API接続</h2></div><span id="vault-chip" class="chip warning">状態確認中</span></div>
+            <form id="credential-form" class="credential-form">
+              <label>管理トークン<input id="admin-token" type="password" autocomplete="off" placeholder="FUNDING_ADMIN_TOKEN"></label>
+              <label>API Key<input id="api-key" type="password" autocomplete="off" placeholder="localhost版のみ"></label>
+              <label>API Secret<input id="api-secret" type="password" autocomplete="off" placeholder="localhost版のみ"></label>
+              <button id="save-credentials" class="button primary" type="submit">権限を検査して暗号化保存</button>
+            </form>
+            <p id="credential-note" class="muted"></p>
+          </article>
+          <article class="panel"><p class="eyebrow">MINIMUM PERMISSIONS</p><h2>許可する範囲</h2><ul class="check-list"><li>残高・証拠金・建玉・注文・約定の参照</li><li>段階解放時のみ新規注文と取消</li><li class="blocked">日本円出金は拒否</li><li class="blocked">暗号資産送付は拒否</li><li class="blocked">外部・内部振替権限は拒否</li><li>固定IP制限を取引所側で設定</li></ul><div class="env-box"><code>FUNDING_VAULT_KEY</code><code>FUNDING_ADMIN_TOKEN</code><code>FUNDING_LIVE_ENABLED=false</code></div></article>
+        </div>
+      </section>
+
+      <section class="page" data-panel="rebalance">
+        <div class="intro"><div><p class="eyebrow">PRE-FUNDING PLANNER</p><h2>送金ではなく事前配置で片脚リスクを減らす</h2></div><p>自動出金は実装しません。不足額と実行可能元本を計算し、口座内振替も公式APIと権限を確認できるまでは手動タスクとして出します。</p></div>
+        <div class="grid two wide-left">
+          <article class="panel"><form id="rebalance-form" class="form-grid"><label>現物口座 JPY<input name="spot_jpy" type="number" min="0" step="1000" value="200000"></label><label>証拠金口座 JPY<input name="collateral_jpy" type="number" min="0" step="1000" value="200000"></label><label>現物 BTC<input name="spot_btc" type="number" min="0" step="0.001" value="0"></label><label>最大レバレッジ<input name="max_leverage" type="number" min="1" max="2" step="0.1" value="2"></label><label>証拠金バッファ<input name="margin_buffer_ratio" type="number" min="1" step="0.1" value="1.8"></label><button class="button primary" type="submit">資金配置を計算</button></form></article>
+          <article class="panel"><p class="eyebrow">CAPITAL READINESS</p><h2 id="rebalance-state">未計算</h2><strong id="feasible-notional" class="big-value">—</strong><div id="rebalance-steps" class="mini-list"></div></article>
+        </div>
+      </section>
+
+      <section class="page" data-panel="audit">
+        <div class="intro"><div><p class="eyebrow">AUTOMATION & KILL SWITCH</p><h2>自動運転はまずペーパーで連続検証</h2></div><p>ローカル版の自動運転も実注文を送りません。ライブ注文部品は二重環境ロックとFOK二脚回復を持ちますが、鍵・残高・受入試験なしでは有効化されません。</p></div>
+        <div class="grid two">
+          <article class="panel"><div class="control-stack"><button id="start-auto" class="button primary">自動ペーパー開始</button><button id="tick-auto" class="button secondary">1サイクル実行</button><button id="stop-auto" class="button danger">停止</button></div><div id="automation-status" class="safety-list"></div></article>
+          <article class="panel"><div class="panel-head"><div><p class="eyebrow">SESSION AUDIT</p><h2>操作・判定ログ</h2></div><button id="clear-audit" class="text-button">画面ログをクリア</button></div><div id="audit-list" class="audit-list"></div></article>
+        </div>
+      </section>
+
+      <footer><span>Funding Control JP v0.3</span><span>Public data / paper model · Not investment advice</span></footer>
+    </main>
+  </div>
+  <script src="/assets/funding.js" defer></script>
+</body>
+</html>
