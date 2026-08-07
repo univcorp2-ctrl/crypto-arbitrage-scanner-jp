@@ -5,9 +5,13 @@ on:
     - cron: '*/30 * * * *'
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   scan:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v5
 
@@ -22,6 +26,7 @@ jobs:
 
       - name: Copy default config
         run: cp config.example.yml config.yml
+
       - name: Run arbitrage scan
         id: scan
         run: |
@@ -30,27 +35,34 @@ jobs:
           OUTPUT=$(arbscan --config config.yml --market BTC/JPY --min-net-bps 5 2>&1)
           EXIT=$?
           printf '%s\n' "$OUTPUT" > artifacts/latest-scan.txt
-          echo "result<<DELIM" >> "$GITHUB_OUTPUT"
-          echo "$OUTPUT" >> "$GITHUB_OUTPUT"
-          echo "DELIM" >> "$GITHUB_OUTPUT"
-          echo "exit_code=$EXIT" >> "$GITHUB_OUTPUT"
+          {
+            echo "result<<ARB_SCAN_OUTPUT"
+            echo "$OUTPUT"
+            echo "ARB_SCAN_OUTPUT"
+            echo "exit_code=$EXIT"
+          } >> "$GITHUB_OUTPUT"
           echo "$OUTPUT"
+
       - name: Notify Telegram via Cloudflare Worker
         if: always()
         env:
           CF_SECRET: ${{ secrets.CF_WORKER_SECRET }}
+          SCAN_EXIT: ${{ steps.scan.outputs.exit_code }}
+          SCAN_RESULT: ${{ steps.scan.outputs.result }}
         run: |
-          RESULT="${{ steps.scan.outputs.result }}"
-          if echo "$RESULT" | grep -qi "Opportunity"; then
+          if [ "$SCAN_EXIT" != "0" ]; then
+            STATUS="ERROR arb-scan-failed"
+          elif echo "$SCAN_RESULT" | grep -qi "Opportunity"; then
             STATUS="ALERT arb-opportunity-found"
           else
             STATUS="OK scan-complete-no-opportunity"
           fi
-          FIRST=$(echo "$RESULT" | head -8)
+          FIRST=$(echo "$SCAN_RESULT" | head -8)
           ENCODED=$(python3 -c "import urllib.parse,sys; print(urllib.parse.quote(sys.argv[1]))" "$STATUS: $FIRST")
           if [ -n "$CF_SECRET" ]; then
             curl -sf "https://x-realestate-autopost.univcorp2.workers.dev/telegram?msg=$ENCODED&secret=$CF_SECRET" || true
           fi
+
       - name: Upload scan artifact
         if: always()
         uses: actions/upload-artifact@v6
@@ -58,3 +70,7 @@ jobs:
           name: arb-scan-${{ github.run_number }}
           path: artifacts/latest-scan.txt
           retention-days: 7
+
+      - name: Fail when scanner failed
+        if: always() && steps.scan.outputs.exit_code != '0'
+        run: exit 1
