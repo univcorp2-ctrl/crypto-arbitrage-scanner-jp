@@ -1,0 +1,9 @@
+mode: paper
+initial_jpy_per_exchange: 500000
+initial_btc_value_jpy_per_exchange: 500000
+min_net_bps: 5
+max_trade_jpy: 100000
+min_trade_jpy: 5000
+slippage_bps: 2
+daily_loss_limit_jpy: 50000
+max_trades_per_run: 1
