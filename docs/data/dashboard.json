@@ -1,0 +1,81 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-08-07T15:00:00+09:00",
+  "mode": "paper",
+  "data_status": "seeded_demo",
+  "currency": "JPY",
+  "market": "BTC/JPY",
+  "repository_visibility": "public",
+  "headline": "国内4取引所・事前配賦型アービトラージ ペーパートレード",
+  "disclaimer": "この初期値は画面検証用の仮想データです。実注文・実残高・送金は行いません。",
+  "current_reference_price_jpy": 10212488.5,
+  "metrics": {
+    "portfolio_value_jpy": 4014450,
+    "initial_capital_jpy": 4000000,
+    "total_pnl_jpy": 14450,
+    "realized_pnl_jpy": 4990,
+    "unrealized_pnl_jpy": 9460,
+    "total_return_pct": 0.36125,
+    "annualized_return_pct": 4.48,
+    "today_pnl_jpy": 0,
+    "sharpe_ratio": 1.31,
+    "sortino_ratio": 2.08,
+    "calmar_ratio": 10.2,
+    "annualized_volatility_pct": 3.4,
+    "max_drawdown_pct": -0.44,
+    "win_rate_pct": 75,
+    "profit_factor": 4.54,
+    "trade_count": 12,
+    "average_trade_pnl_jpy": 415.83,
+    "fees_jpy": 1155,
+    "slippage_jpy": 420,
+    "best_day_jpy": 10250,
+    "worst_day_jpy": -7800
+  },
+  "balances": [
+    {"exchange":"bitbank","jpy":501247.5,"btc":0.049192,"btc_value_jpy":502365,"total_jpy":1003612.5,"allocation_pct":25,"cash_ratio_pct":49.94,"inventory_status":"balanced","fund_type":"simulated_prefunded"},
+    {"exchange":"gmocoin","jpy":501247.5,"btc":0.049192,"btc_value_jpy":502365,"total_jpy":1003612.5,"allocation_pct":25,"cash_ratio_pct":49.94,"inventory_status":"balanced","fund_type":"simulated_prefunded"},
+    {"exchange":"bitflyer","jpy":501247.5,"btc":0.049192,"btc_value_jpy":502365,"total_jpy":1003612.5,"allocation_pct":25,"cash_ratio_pct":49.94,"inventory_status":"balanced","fund_type":"simulated_prefunded"},
+    {"exchange":"coincheck","jpy":501247.5,"btc":0.049192,"btc_value_jpy":502365,"total_jpy":1003612.5,"allocation_pct":25,"cash_ratio_pct":49.94,"inventory_status":"balanced","fund_type":"simulated_prefunded"}
+  ],
+  "equity_history": [
+    {"timestamp":"2026-07-09T23:55:00+09:00","equity_jpy":4000000,"reference_price_jpy":10164400,"source":"seeded_demo"},
+    {"timestamp":"2026-07-15T23:55:00+09:00","equity_jpy":4003400,"reference_price_jpy":10179000,"source":"seeded_demo"},
+    {"timestamp":"2026-07-21T23:55:00+09:00","equity_jpy":4007800,"reference_price_jpy":10190000,"source":"seeded_demo"},
+    {"timestamp":"2026-07-27T23:55:00+09:00","equity_jpy":4006200,"reference_price_jpy":10201000,"source":"seeded_demo"},
+    {"timestamp":"2026-08-02T23:55:00+09:00","equity_jpy":4009300,"reference_price_jpy":10208000,"source":"seeded_demo"},
+    {"timestamp":"2026-08-06T23:55:00+09:00","equity_jpy":4014450,"reference_price_jpy":10212488.5,"source":"seeded_demo"}
+  ],
+  "daily": [
+    {"date":"2026-08-02","equity_jpy":4009300,"pnl_jpy":3100,"return_pct":0.0774,"drawdown_pct":0},
+    {"date":"2026-08-03","equity_jpy":4004200,"pnl_jpy":-5100,"return_pct":-0.1272,"drawdown_pct":-0.1272},
+    {"date":"2026-08-04","equity_jpy":4009100,"pnl_jpy":4900,"return_pct":0.1224,"drawdown_pct":-0.005},
+    {"date":"2026-08-05","equity_jpy":4003000,"pnl_jpy":-6100,"return_pct":-0.1521,"drawdown_pct":-0.1572},
+    {"date":"2026-08-06","equity_jpy":4013250,"pnl_jpy":10250,"return_pct":0.2561,"drawdown_pct":0},
+    {"date":"2026-08-07","equity_jpy":4014450,"pnl_jpy":1200,"return_pct":0.0299,"drawdown_pct":0}
+  ],
+  "trades": [
+    {"id":"seed-12","timestamp":"2026-08-05T12:20:00+09:00","mode":"paper","source":"seeded_demo","market":"BTC/JPY","buy_exchange":"bitbank","sell_exchange":"gmocoin","quantity_btc":0.0088,"buy_price_jpy":10200000,"sell_price_jpy":10259000,"fees_jpy":99,"slippage_cost_jpy":36,"net_spread_bps":5.1,"net_pnl_jpy":450,"status":"filled"},
+    {"id":"seed-11","timestamp":"2026-08-03T10:40:00+09:00","mode":"paper","source":"seeded_demo","market":"BTC/JPY","buy_exchange":"coincheck","sell_exchange":"bitflyer","quantity_btc":0.0083,"buy_price_jpy":10195000,"sell_price_jpy":10270000,"fees_jpy":93,"slippage_cost_jpy":34,"net_spread_bps":6.2,"net_pnl_jpy":530,"status":"filled"},
+    {"id":"seed-10","timestamp":"2026-08-01T15:05:00+09:00","mode":"paper","source":"seeded_demo","market":"BTC/JPY","buy_exchange":"gmocoin","sell_exchange":"bitbank","quantity_btc":0.0091,"buy_price_jpy":10188000,"sell_price_jpy":10273000,"fees_jpy":102,"slippage_cost_jpy":37,"net_spread_bps":7.5,"net_pnl_jpy":690,"status":"filled"}
+  ],
+  "opportunities": [
+    {"market":"BTC/JPY","buy_exchange":"gmocoin","sell_exchange":"bitbank","buy_ask_jpy":10208000,"sell_bid_jpy":10212488,"top_size_btc":0.04,"gross_spread_bps":4.4,"net_spread_bps":-10.6,"net_after_slippage_bps":-14.6,"estimated_profit_jpy":-146,"eligible":false},
+    {"market":"BTC/JPY","buy_exchange":"coincheck","sell_exchange":"bitflyer","buy_ask_jpy":10210000,"sell_bid_jpy":10213000,"top_size_btc":0.03,"gross_spread_bps":2.9,"net_spread_bps":-12.1,"net_after_slippage_bps":-16.1,"estimated_profit_jpy":-161,"eligible":false}
+  ],
+  "exchanges": [
+    {"id":"bitbank","name":"bitbank","status":"connected","bid_jpy":10212488,"ask_jpy":10212489,"spread_bps":0.001,"taker_fee_bps":10,"pair":"btc_jpy","private_api":"not_configured"},
+    {"id":"gmocoin","name":"GMOコイン","status":"connected","bid_jpy":10208000,"ask_jpy":10209000,"spread_bps":0.98,"taker_fee_bps":5,"pair":"BTC","private_api":"not_configured"},
+    {"id":"bitflyer","name":"bitFlyer Lightning","status":"connected","bid_jpy":10211000,"ask_jpy":10213000,"spread_bps":1.96,"taker_fee_bps":15,"pair":"BTC_JPY","private_api":"not_configured"},
+    {"id":"coincheck","name":"Coincheck Exchange","status":"connected","bid_jpy":10207000,"ask_jpy":10210000,"spread_bps":2.94,"taker_fee_bps":0,"pair":"btc_jpy","private_api":"not_configured"}
+  ],
+  "connectors": [
+    {"id":"bitbank","name":"bitbank","priority":1,"priority_reason":"JPY板・Private RESTの仕様が明確で、最初の接続検証に向く","public_status":"connected","private_status":"not_configured","api_key_env":"BITBANK_API_KEY","api_secret_env":"BITBANK_API_SECRET","auth_headers":"ACCESS-KEY / ACCESS-REQUEST-TIME / ACCESS-SIGNATURE","recommended_permissions":["資産参照","注文参照","約定履歴参照"],"forbidden_permissions":["出金","送付"],"ip_restriction":"推奨","fee_assumption_bps":10,"docs_url":"https://github.com/bitbankinc/bitbank-api-docs/blob/master/rest-api.md","secret_location":"GitHub Actions Secrets または非公開バックエンドのSecret"},
+    {"id":"gmocoin","name":"GMOコイン","priority":2,"priority_reason":"現物Taker手数料の仮定が低く、REST/WebSocketが整理されている","public_status":"connected","private_status":"not_configured","api_key_env":"GMO_API_KEY","api_secret_env":"GMO_API_SECRET","auth_headers":"API-KEY / API-TIMESTAMP / API-SIGN","recommended_permissions":["資産参照","注文参照","約定履歴参照"],"forbidden_permissions":["出金","振替"],"ip_restriction":"推奨","fee_assumption_bps":5,"docs_url":"https://api.coin.z.com/docs/","secret_location":"GitHub Actions Secrets または非公開バックエンドのSecret"},
+    {"id":"bitflyer","name":"bitFlyer Lightning","priority":3,"priority_reason":"国内主要板として有用。取引量別手数料を口座実績に合わせて補正する","public_status":"connected","private_status":"not_configured","api_key_env":"BITFLYER_API_KEY","api_secret_env":"BITFLYER_API_SECRET","auth_headers":"ACCESS-KEY / ACCESS-TIMESTAMP / ACCESS-SIGN","recommended_permissions":["資産参照","注文参照","約定履歴参照"],"forbidden_permissions":["Withdraw"],"ip_restriction":"可能なら設定","fee_assumption_bps":15,"docs_url":"https://lightning.bitflyer.com/docs","secret_location":"GitHub Actions Secrets または非公開バックエンドのSecret"},
+    {"id":"coincheck","name":"Coincheck Exchange","priority":4,"priority_reason":"取引所APIとPrivate WebSocketを備える。板・注文条件を個別検証する","public_status":"connected","private_status":"not_configured","api_key_env":"COINCHECK_API_KEY","api_secret_env":"COINCHECK_API_SECRET","auth_headers":"ACCESS-KEY / ACCESS-NONCE / ACCESS-SIGNATURE","recommended_permissions":["残高参照","注文参照","取引履歴参照"],"forbidden_permissions":["暗号資産送付","日本円出金"],"ip_restriction":"推奨","fee_assumption_bps":0,"docs_url":"https://coincheck.com/documents/exchange/api","secret_location":"GitHub Actions Secrets または非公開バックエンドのSecret"}
+  ],
+  "risk": {"min_net_bps":5,"max_trade_jpy":100000,"min_trade_jpy":5000,"slippage_bps_per_leg":2,"daily_loss_limit_jpy":50000,"max_trades_per_run":1,"withdrawal_enabled":false,"live_order_enabled":false,"kill_switch":"locked","inventory_model":"pre-funded JPY and BTC on every exchange"},
+  "assumptions": {"price_source":"各取引所Public RESTの板スナップショット","fill_model":"最良気配数量の範囲内＋片側固定スリッページ","transfer_cost":"未計上（取引所間送金を実行しない）","tax":"未計上","benchmark":"BTC在庫の時価変動を含む総資産","fee_values_are_assumptions":true},
+  "system": {"last_run":"2026-08-07T15:00:00+09:00","run_status":"healthy","public_exchange_count":4,"configured_exchange_count":4,"errors":{},"execution_reason":"no_eligible_opportunity","executed_trade_id":null,"schedule":"GitHub Actionsで毎時17分（UTC）に1回","state_persistence":"data/paper_state.json","secret_storage":"この公開Web画面には保存しない"}
+}
