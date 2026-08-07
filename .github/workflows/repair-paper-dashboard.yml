@@ -1,0 +1,164 @@
+name: Repair Paper Dashboard Once
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: repair-paper-dashboard-once
+  cancel-in-progress: false
+
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: main
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Patch scheduled runner and static labels
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          runner = Path("scripts/run_paper_dashboard.py")
+          text = runner.read_text(encoding="utf-8")
+
+          replacements = [
+              ("from arbscanner.paper import (", "from arbscanner.paper_ledger import ("),
+              ('"GMO_API_KEY"', '"GMO_COIN_API_KEY"'),
+              ('"GMO_API_SECRET"', '"GMO_COIN_API_SECRET"'),
+              ('settings.get("min_net_bps"), "5"', 'settings.get("min_net_bps"), "12"'),
+              ('settings.get("max_trade_jpy"), "100000"', 'settings.get("max_trade_jpy"), "50000"'),
+              ('settings.get("min_trade_jpy"), "5000"', 'settings.get("min_trade_jpy"), "2000"'),
+          ]
+          for old, new in replacements:
+              if old not in text:
+                  raise SystemExit(f"expected runner text not found: {old}")
+              text = text.replace(old, new)
+
+          fetch_anchor = (
+              "    books, errors = await fetch_orderbooks(config)\n"
+              "    existing_state = _load_state()"
+          )
+          fetch_replacement = (
+              "    books, errors = await fetch_orderbooks(config)\n"
+              "    has_cross_venue_data = len(books) >= 2\n"
+              "    snapshot_source = (\n"
+              "        \"public_orderbook_paper\"\n"
+              "        if has_cross_venue_data\n"
+              "        else \"public_orderbook_unavailable\"\n"
+              "    )\n"
+              "    snapshot_data_status = (\n"
+              "        \"seeded_demo_plus_live_public\"\n"
+              "        if has_cross_venue_data\n"
+              "        else \"seeded_demo\"\n"
+              "    )\n"
+              "    existing_state = _load_state()"
+          )
+          if fetch_anchor not in text:
+              raise SystemExit("fetch anchor not found")
+          text = text.replace(fetch_anchor, fetch_replacement, 1)
+
+          reason_anchor = '    execution_reason = "no_eligible_opportunity"'
+          reason_replacement = (
+              "    execution_reason = (\n"
+              "        \"no_eligible_opportunity\"\n"
+              "        if has_cross_venue_data\n"
+              "        else \"insufficient_public_orderbooks\"\n"
+              "    )"
+          )
+          if reason_anchor not in text:
+              raise SystemExit("execution reason anchor not found")
+          text = text.replace(reason_anchor, reason_replacement, 1)
+
+          source_anchor = '            "source": "public_orderbook_paper",'
+          if source_anchor not in text:
+              raise SystemExit("history source anchor not found")
+          text = text.replace(source_anchor, '            "source": snapshot_source,', 1)
+
+          state_anchor = '            "data_status": "seeded_demo_plus_live_public",'
+          if state_anchor not in text:
+              raise SystemExit("state data status anchor not found")
+          text = text.replace(state_anchor, '            "data_status": snapshot_data_status,', 1)
+
+          text = text.replace(
+              '"status": "degraded" if errors else "healthy"',
+              '"status": "degraded" if errors or not has_cross_venue_data else "healthy"',
+          )
+          text = text.replace(
+              '"run_status": "degraded" if errors else "healthy"',
+              '"run_status": "degraded" if errors or not has_cross_venue_data else "healthy"',
+          )
+          runner.write_text(text, encoding="utf-8")
+
+          app = Path("docs/assets/app.js")
+          app_text = app.read_text(encoding="utf-8")
+          app_anchor = '    missing_orderbook: "板データ不足",'
+          if app_anchor in app_text and "insufficient_public_orderbooks" not in app_text:
+              app_text = app_text.replace(
+                  app_anchor,
+                  app_anchor
+                  + '\n    insufficient_public_orderbooks: "公開板が2取引所未満",',
+              )
+          app.write_text(app_text, encoding="utf-8")
+          PY
+
+      - name: Remove temporary diagnostics and one-time workflows
+        run: |
+          git rm --ignore-unmatch \
+            .github/workflows/format-once.yml \
+            .github/workflows/repair-paper-dashboard.yml \
+            ruff-check.log \
+            ruff-fix.log \
+            ruff-format.log
+
+      - name: Install application and test dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e '.[dev,web]'
+
+      - name: Format, lint, and test
+        run: |
+          ruff check src tests scripts --fix --unsafe-fixes
+          ruff format src tests scripts
+          ruff check src tests scripts
+          ruff format --check src tests scripts
+          pytest
+          python -m py_compile scripts/run_paper_dashboard.py
+          node --check docs/assets/app.js
+          node --check src/arbscanner/static/app.js
+
+      - name: Run first public-orderbook paper snapshot
+        run: |
+          cp config.example.yml config.yml
+          python scripts/run_paper_dashboard.py
+
+      - name: Validate generated ledger
+        run: |
+          python -m json.tool data/paper_state.json >/dev/null
+          python -m json.tool docs/data/dashboard.json >/dev/null
+          git diff --check
+
+      - name: Commit repaired operation state
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "No repair changes remain."
+          else
+            git commit -m "fix: activate verified paper dashboard cycle"
+            git push
+          fi
