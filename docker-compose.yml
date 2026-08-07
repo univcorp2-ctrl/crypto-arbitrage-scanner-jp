@@ -1,0 +1,18 @@
+services:
+  arb-dashboard:
+    build: .
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8000:8000"
+    environment:
+      ARB_AUTOSTART_PAPER: "true"
+      ARB_HOST: "0.0.0.0"
+      ARB_DB_PATH: "/data/arbscanner.db"
+      ARB_INTERVAL_SECONDS: "30"
+      ARB_MIN_NET_BPS: "12"
+      ARB_MAX_TRADE_JPY: "50000"
+    volumes:
+      - arb_data:/data
+
+volumes:
+  arb_data:
