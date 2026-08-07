@@ -34,65 +34,62 @@ jobs:
 
           runner = Path("scripts/run_paper_dashboard.py")
           text = runner.read_text(encoding="utf-8")
-
-          replacements = [
-              ("from arbscanner.paper import (", "from arbscanner.paper_ledger import ("),
-              ('"GMO_API_KEY"', '"GMO_COIN_API_KEY"'),
-              ('"GMO_API_SECRET"', '"GMO_COIN_API_SECRET"'),
-              ('settings.get("min_net_bps"), "5"', 'settings.get("min_net_bps"), "12"'),
-              ('settings.get("max_trade_jpy"), "100000"', 'settings.get("max_trade_jpy"), "50000"'),
-              ('settings.get("min_trade_jpy"), "5000"', 'settings.get("min_trade_jpy"), "2000"'),
-          ]
-          for old, new in replacements:
-              if old not in text:
-                  raise SystemExit(f"expected runner text not found: {old}")
-              text = text.replace(old, new)
-
-          fetch_anchor = (
-              "    books, errors = await fetch_orderbooks(config)\n"
-              "    existing_state = _load_state()"
+          text = text.replace(
+              "from arbscanner.paper import (",
+              "from arbscanner.paper_ledger import (",
           )
-          fetch_replacement = (
-              "    books, errors = await fetch_orderbooks(config)\n"
-              "    has_cross_venue_data = len(books) >= 2\n"
-              "    snapshot_source = (\n"
-              "        \"public_orderbook_paper\"\n"
-              "        if has_cross_venue_data\n"
-              "        else \"public_orderbook_unavailable\"\n"
-              "    )\n"
-              "    snapshot_data_status = (\n"
-              "        \"seeded_demo_plus_live_public\"\n"
-              "        if has_cross_venue_data\n"
-              "        else \"seeded_demo\"\n"
-              "    )\n"
-              "    existing_state = _load_state()"
+          text = text.replace('"GMO_API_KEY"', '"GMO_COIN_API_KEY"')
+          text = text.replace('"GMO_API_SECRET"', '"GMO_COIN_API_SECRET"')
+          text = text.replace(
+              'settings.get("min_net_bps"), "5"',
+              'settings.get("min_net_bps"), "12"',
           )
-          if fetch_anchor not in text:
-              raise SystemExit("fetch anchor not found")
-          text = text.replace(fetch_anchor, fetch_replacement, 1)
+          text = text.replace(
+              'settings.get("max_trade_jpy"), "100000"',
+              'settings.get("max_trade_jpy"), "50000"',
+          )
+          text = text.replace(
+              'settings.get("min_trade_jpy"), "5000"',
+              'settings.get("min_trade_jpy"), "2000"',
+          )
 
-          reason_anchor = '    execution_reason = "no_eligible_opportunity"'
-          reason_replacement = (
+          if "has_cross_venue_data = len(books) >= 2" not in text:
+              text = text.replace(
+                  "    existing_state = _load_state()",
+                  "    has_cross_venue_data = len(books) >= 2\n"
+                  "    snapshot_source = (\n"
+                  "        \"public_orderbook_paper\"\n"
+                  "        if has_cross_venue_data\n"
+                  "        else \"public_orderbook_unavailable\"\n"
+                  "    )\n"
+                  "    snapshot_data_status = (\n"
+                  "        \"seeded_demo_plus_live_public\"\n"
+                  "        if has_cross_venue_data\n"
+                  "        else \"seeded_demo\"\n"
+                  "    )\n"
+                  "    existing_state = _load_state()",
+                  1,
+              )
+
+          text = text.replace(
+              '    execution_reason = "no_eligible_opportunity"',
               "    execution_reason = (\n"
               "        \"no_eligible_opportunity\"\n"
               "        if has_cross_venue_data\n"
               "        else \"insufficient_public_orderbooks\"\n"
-              "    )"
+              "    )",
+              1,
           )
-          if reason_anchor not in text:
-              raise SystemExit("execution reason anchor not found")
-          text = text.replace(reason_anchor, reason_replacement, 1)
-
-          source_anchor = '            "source": "public_orderbook_paper",'
-          if source_anchor not in text:
-              raise SystemExit("history source anchor not found")
-          text = text.replace(source_anchor, '            "source": snapshot_source,', 1)
-
-          state_anchor = '            "data_status": "seeded_demo_plus_live_public",'
-          if state_anchor not in text:
-              raise SystemExit("state data status anchor not found")
-          text = text.replace(state_anchor, '            "data_status": snapshot_data_status,', 1)
-
+          text = text.replace(
+              '            "source": "public_orderbook_paper",',
+              '            "source": snapshot_source,',
+              1,
+          )
+          text = text.replace(
+              '            "data_status": "seeded_demo_plus_live_public",',
+              '            "data_status": snapshot_data_status,',
+              1,
+          )
           text = text.replace(
               '"status": "degraded" if errors else "healthy"',
               '"status": "degraded" if errors or not has_cross_venue_data else "healthy"',
@@ -103,16 +100,21 @@ jobs:
           )
           runner.write_text(text, encoding="utf-8")
 
+          if "from arbscanner.paper_ledger import (" not in text:
+              raise SystemExit("paper ledger compatibility import was not applied")
+          if "GMO_COIN_API_KEY" not in text or "GMO_COIN_API_SECRET" not in text:
+              raise SystemExit("GMO Coin environment variable names were not applied")
+
           app = Path("docs/assets/app.js")
           app_text = app.read_text(encoding="utf-8")
-          app_anchor = '    missing_orderbook: "板データ不足",'
-          if app_anchor in app_text and "insufficient_public_orderbooks" not in app_text:
+          if "insufficient_public_orderbooks" not in app_text:
               app_text = app_text.replace(
-                  app_anchor,
-                  app_anchor
-                  + '\n    insufficient_public_orderbooks: "公開板が2取引所未満",',
+                  '    missing_orderbook: "板データ不足",',
+                  '    missing_orderbook: "板データ不足",\n'
+                  '    insufficient_public_orderbooks: "公開板が2取引所未満",',
               )
           app.write_text(app_text, encoding="utf-8")
+          print("scheduled runner compatibility patch applied")
           PY
 
       - name: Remove temporary diagnostics and one-time workflows
