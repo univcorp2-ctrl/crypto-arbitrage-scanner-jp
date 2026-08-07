@@ -5,32 +5,36 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "crypto-arbitrage-scanner-jp"
 version = "0.2.0"
-description = "JPY crypto arbitrage scanner with a production-like paper-trading dashboard."
+description = "Read-only scanner and production-like paper arbitrage console for Japanese JPY spot markets."
 readme = "README.md"
 requires-python = ">=3.11"
 authors = [{ name = "GitHub-GPT Syncer" }]
 dependencies = [
-  "fastapi>=0.115,<1",
   "httpx>=0.27,<1",
   "PyYAML>=6.0,<7",
-  "uvicorn>=0.30,<1",
 ]
 
 [project.optional-dependencies]
+web = [
+  "fastapi>=0.115,<1",
+  "uvicorn>=0.30,<1",
+]
 dev = [
   "pytest>=8,<9",
-  "ruff>=0.4,<1",
+  "ruff>=0.6,<1",
+  "fastapi>=0.115,<1",
+  "uvicorn>=0.30,<1",
 ]
 
 [project.scripts]
 arbscan = "arbscanner.cli:main"
-arbweb = "arbscanner.webapp:main"
+arbweb = "arbscanner.web:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
 
 [tool.setuptools.package-data]
-arbscanner = ["static/*"]
+arbscanner = ["static/*.html", "static/*.css", "static/*.js"]
 
 [tool.pytest.ini_options]
 addopts = "-q"
@@ -41,7 +45,5 @@ line-length = 100
 target-version = "py311"
 
 [tool.ruff.lint]
-# E3/E5 and import-layout checks are formatter concerns. CI keeps the
-# correctness-oriented pycodestyle, Pyflakes, pyupgrade, Bugbear and
-# simplify rules enabled.
-select = ["E4", "E7", "E9", "F", "UP", "B", "SIM"]
+select = ["E", "F", "I", "UP", "B", "SIM"]
+ignore = ["E501"]
