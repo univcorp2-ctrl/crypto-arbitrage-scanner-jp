@@ -1,0 +1,475 @@
+{
+  "schema_version": 1,
+  "mode": "paper",
+  "data_status": "seeded_demo_plus_live_public",
+  "started_at": "2026-07-08T16:36:14+09:00",
+  "initial_capital_jpy": 4000000.0,
+  "initial_reference_price_jpy": 10159888.283325,
+  "balances": {
+    "bitbank": {
+      "JPY": 501247.5,
+      "BTC": 0.04921313
+    },
+    "gmocoin": {
+      "JPY": 501247.5,
+      "BTC": 0.04921313
+    },
+    "bitflyer": {
+      "JPY": 501247.5,
+      "BTC": 0.04921313
+    },
+    "coincheck": {
+      "JPY": 501247.5,
+      "BTC": 0.04921313
+    }
+  },
+  "trades": [
+    {
+      "id": "seed-20260714-01",
+      "timestamp": "2026-07-14T16:36:14+09:00",
+      "mode": "paper",
+      "source": "seeded_demo",
+      "market": "BTC/JPY",
+      "buy_exchange": "bitbank",
+      "sell_exchange": "gmocoin",
+      "quantity_btc": 0.00783709,
+      "buy_price_jpy": 10187449.5195,
+      "sell_price_jpy": 10281683.427555375,
+      "buy_notional_jpy": 80000.0,
+      "sell_notional_jpy": 80708.0,
+      "fees_jpy": 88.0,
+      "slippage_cost_jpy": 32.0,
+      "observed_gross_spread_bps": 92.5,
+      "execution_gross_spread_bps": 88.5,
+      "net_spread_bps": 77.5,
+      "net_pnl_jpy": 620.0,
+      "status": "filled"
+    },
+    {
+      "id": "seed-20260716-02",
+      "timestamp": "2026-07-16T16:36:14+09:00",
+      "mode": "paper",
+      "source": "seeded_demo",
+      "market": "BTC/JPY",
+      "buy_exchange": "coincheck",
+      "sell_exchange": "bitflyer",
+      "quantity_btc": 0.00832691,
+      "buy_price_jpy": 10197657.38475,
+      "sell_price_jpy": 10313730.72027642,
+      "buy_notional_jpy": 85000.0,
+      "sell_notional_jpy": 85933.5,
+      "fees_jpy": 93.5,
+      "slippage_cost_jpy": 34.0,
+      "observed_gross_spread_bps": 113.82352941176471,
+      "execution_gross_spread_bps": 109.82352941176471,
+      "net_spread_bps": 98.82352941176471,
+      "net_pnl_jpy": 840.0,
+      "status": "filled"
+    },
+    {
+      "id": "seed-20260718-03",
+      "timestamp": "2026-07-18T16:36:14+09:00",
+      "mode": "paper",
+      "source": "seeded_demo",
+      "market": "BTC/JPY",
+      "buy_exchange": "gmocoin",
+      "sell_exchange": "bitbank",
+      "quantity_btc": 0.00881673,
+      "buy_price_jpy": 10207865.25,
+      "sell_price_jpy": 10193687.659375,
+      "buy_notional_jpy": 90000.0,
+      "sell_notional_jpy": 89839.0,
+      "fees_jpy": 99.0,
+      "slippage_cost_jpy": 36.0,
+      "observed_gross_spread_bps": -13.88888888888889,
+      "execution_gross_spread_bps": -17.88888888888889,
+      "net_spread_bps": -28.88888888888889,
+      "net_pnl_jpy": -260.0,
+      "status": "filled"
+    },
+    {
+      "id": "seed-20260720-04",
+      "timestamp": "2026-07-20T16:36:14+09:00",
+      "mode": "paper",
+      "source": "seeded_demo",
+      "market": "BTC/JPY",
+      "buy_exchange": "bitflyer",
+      "sell_exchange": "coincheck",
+      "quantity_btc": 0.00930654,
+      "buy_price_jpy": 10218073.11525,
+      "sell_price_jpy": 10331278.609500533,
+      "buy_notional_jpy": 95000.0,
+      "sell_notional_jpy": 96014.5,
+      "fees_jpy": 104.5,
+      "slippage_cost_jpy": 38.0,
+      "observed_gross_spread_bps": 110.78947368421052,
+      "execution_gross_spread_bps": 106.78947368421052,
+      "net_spread_bps": 95.78947368421052,
+      "net_pnl_jpy": 910.0,
+      "status": "filled"
+    },
+    {
+      "id": "seed-20260722-05",
+      "timestamp": "2026-07-22T16:36:14+09:00",
+      "mode": "paper",
+      "source": "seeded_demo",
+      "market": "BTC/JPY",
+      "buy_exchange": "bitbank",
+      "sell_exchange": "gmocoin",
+      "quantity_btc": 0.00783709,
+      "buy_price_jpy": 10228280.9805,
+      "sell_price_jpy": 10312664.298589125,
+      "buy_notional_jpy": 80000.0,
+      "sell_notional_jpy": 80628.0,
+      "fees_jpy": 88.0,
+      "slippage_cost_jpy": 32.0,
+      "observed_gross_spread_bps": 82.5,
+      "execution_gross_spread_bps": 78.5,
+      "net_spread_bps": 67.5,
+      "net_pnl_jpy": 540.0,
+      "status": "filled"
+    },
+    {
+      "id": "seed-20260724-06",
+      "timestamp": "2026-07-24T16:36:14+09:00",
+      "mode": "paper",
+      "source": "seeded_demo",
+      "market": "BTC/JPY",
+      "buy_exchange": "coincheck",
+      "sell_exchange": "bitflyer",
+      "quantity_btc": 0.00832691,
+      "buy_price_jpy": 10187449.5195,
+      "sell_price_jpy": 10181157.271267368,
+      "buy_notional_jpy": 85000.0,
+      "sell_notional_jpy": 84913.5,
+      "fees_jpy": 93.5,
+      "slippage_cost_jpy": 34.0,
+      "observed_gross_spread_bps": -6.176470588235294,
+      "execution_gross_spread_bps": -10.176470588235293,
+      "net_spread_bps": -21.176470588235293,
+      "net_pnl_jpy": -180.0,
+      "status": "filled"
+    },
+    {
+      "id": "seed-20260726-07",
+      "timestamp": "2026-07-26T16:36:14+09:00",
+      "mode": "paper",
+      "source": "seeded_demo",
+      "market": "BTC/JPY",
+      "buy_exchange": "gmocoin",
+      "sell_exchange": "bitbank",
+      "quantity_btc": 0.00881673,
+      "buy_price_jpy": 10197657.38475,
+      "sell_price_jpy": 10299067.422076125,
+      "buy_notional_jpy": 90000.0,
+      "sell_notional_jpy": 90859.0,
+      "fees_jpy": 99.0,
+      "slippage_cost_jpy": 36.0,
+      "observed_gross_spread_bps": 99.44444444444444,
+      "execution_gross_spread_bps": 95.44444444444444,
+      "net_spread_bps": 84.44444444444444,
+      "net_pnl_jpy": 760.0,
+      "status": "filled"
+    },
+    {
+      "id": "seed-20260728-08",
+      "timestamp": "2026-07-28T16:36:14+09:00",
+      "mode": "paper",
+      "source": "seeded_demo",
+      "market": "BTC/JPY",
+      "buy_exchange": "bitflyer",
+      "sell_exchange": "coincheck",
+      "quantity_btc": 0.00930654,
+      "buy_price_jpy": 10207865.25,
+      "sell_price_jpy": 10267232.045269737,
+      "buy_notional_jpy": 95000.0,
+      "sell_notional_jpy": 95514.5,
+      "fees_jpy": 104.5,
+      "slippage_cost_jpy": 38.0,
+      "observed_gross_spread_bps": 58.1578947368421,
+      "execution_gross_spread_bps": 54.1578947368421,
+      "net_spread_bps": 43.1578947368421,
+      "net_pnl_jpy": 410.0,
+      "status": "filled"
+    },
+    {
+      "id": "seed-20260730-09",
+      "timestamp": "2026-07-30T16:36:14+09:00",
+      "mode": "paper",
+      "source": "seeded_demo",
+      "market": "BTC/JPY",
+      "buy_exchange": "bitbank",
+      "sell_exchange": "gmocoin",
+      "quantity_btc": 0.00783709,
+      "buy_price_jpy": 10218073.11525,
+      "sell_price_jpy": 10192527.932461875,
+      "buy_notional_jpy": 80000.0,
+      "sell_notional_jpy": 79768.0,
+      "fees_jpy": 88.0,
+      "slippage_cost_jpy": 32.0,
+      "observed_gross_spread_bps": -25.0,
+      "execution_gross_spread_bps": -29.0,
+      "net_spread_bps": -40.0,
+      "net_pnl_jpy": -320.0,
+      "status": "filled"
+    },
+    {
+      "id": "seed-20260801-10",
+      "timestamp": "2026-08-01T16:36:14+09:00",
+      "mode": "paper",
+      "source": "seeded_demo",
+      "market": "BTC/JPY",
+      "buy_exchange": "coincheck",
+      "sell_exchange": "bitflyer",
+      "quantity_btc": 0.00832691,
+      "buy_price_jpy": 10228280.9805,
+      "sell_price_jpy": 10326652.976988927,
+      "buy_notional_jpy": 85000.0,
+      "sell_notional_jpy": 85783.5,
+      "fees_jpy": 93.5,
+      "slippage_cost_jpy": 34.0,
+      "observed_gross_spread_bps": 96.17647058823529,
+      "execution_gross_spread_bps": 92.17647058823529,
+      "net_spread_bps": 81.17647058823529,
+      "net_pnl_jpy": 690.0,
+      "status": "filled"
+    },
+    {
+      "id": "seed-20260803-11",
+      "timestamp": "2026-08-03T16:36:14+09:00",
+      "mode": "paper",
+      "source": "seeded_demo",
+      "market": "BTC/JPY",
+      "buy_exchange": "gmocoin",
+      "sell_exchange": "bitbank",
+      "quantity_btc": 0.00881673,
+      "buy_price_jpy": 10187449.5195,
+      "sell_price_jpy": 10262723.45206075,
+      "buy_notional_jpy": 90000.0,
+      "sell_notional_jpy": 90629.0,
+      "fees_jpy": 99.0,
+      "slippage_cost_jpy": 36.0,
+      "observed_gross_spread_bps": 73.88888888888889,
+      "execution_gross_spread_bps": 69.88888888888889,
+      "net_spread_bps": 58.888888888888886,
+      "net_pnl_jpy": 530.0,
+      "status": "filled"
+    },
+    {
+      "id": "seed-20260805-12",
+      "timestamp": "2026-08-05T16:36:14+09:00",
+      "mode": "paper",
+      "source": "seeded_demo",
+      "market": "BTC/JPY",
+      "buy_exchange": "bitflyer",
+      "sell_exchange": "coincheck",
+      "quantity_btc": 0.00930654,
+      "buy_price_jpy": 10197657.38475,
+      "sell_price_jpy": 10261258.563702257,
+      "buy_notional_jpy": 95000.0,
+      "sell_notional_jpy": 95554.5,
+      "fees_jpy": 104.5,
+      "slippage_cost_jpy": 38.0,
+      "observed_gross_spread_bps": 62.36842105263158,
+      "execution_gross_spread_bps": 58.36842105263158,
+      "net_spread_bps": 47.36842105263158,
+      "net_pnl_jpy": 450.0,
+      "status": "filled"
+    }
+  ],
+  "equity_history": [
+    {
+      "timestamp": "2026-07-08T23:55:14+09:00",
+      "equity_jpy": 4000000.0,
+      "reference_price_jpy": 10159888.283325,
+      "source": "seeded_demo"
+    },
+    {
+      "timestamp": "2026-07-09T23:55:14+09:00",
+      "equity_jpy": 4006193.134211361,
+      "reference_price_jpy": 10161542.661486207,
+      "source": "seeded_demo"
+    },
+    {
+      "timestamp": "2026-07-10T23:55:14+09:00",
+      "equity_jpy": 4000399.557045894,
+      "reference_price_jpy": 10163197.039647413,
+      "source": "seeded_demo"
+    },
+    {
+      "timestamp": "2026-07-11T23:55:14+09:00",
+      "equity_jpy": 4004295.2382433633,
+      "reference_price_jpy": 10164851.41780862,
+      "source": "seeded_demo"
+    },
+    {
+      "timestamp": "2026-07-12T23:55:14+09:00",
+      "equity_jpy": 4000099.8892614734,
+      "reference_price_jpy": 10166505.795969827,
+      "source": "seeded_demo"
+    },
+    {
+      "timestamp": "2026-07-13T23:55:14+09:00",
+      "equity_jpy": 4007192.0268260967,
+      "reference_price_jpy": 10168160.174131034,
+      "source": "seeded_demo"
+    },
+    {
+      "timestamp": "2026-07-14T23:55:14+09:00",
+      "equity_jpy": 4000699.224830315,
+      "reference_price_jpy": 10169814.55229224,
+      "source": "seeded_demo"
+    },
+    {
+      "timestamp": "2026-07-15T23:55:14+09:00",
+      "equity_jpy": 4005493.909381046,
+      "reference_price_jpy": 10171468.930453448,
+      "source": "seeded_demo"
+    },
+    {
+      "timestamp": "2026-07-16T23:55:14+09:00",
+      "equity_jpy": 4000299.667784421,
+      "reference_price_jpy": 10173123.308614654,
+      "source": "seeded_demo"
+    },
+    {
+      "timestamp": "2026-07-17T23:55:14+09:00",
+      "equity_jpy": 4008590.4764867267,
+      "reference_price_jpy": 10174777.686775861,
+      "source": "seeded_demo"
+    },
+    {
+      "timestamp": "2026-07-18T23:55:14+09:00",
+      "equity_jpy": 4000998.8926147358,
+      "reference_price_jpy": 10176432.064937068,
+      "source": "seeded_demo"
+    },
+    {
+      "timestamp": "2026-07-19T23:55:14+09:00",
+      "equity_jpy": 4004495.01676631,
+      "reference_price_jpy": 10178086.443098275,
+      "source": "seeded_demo"
+    },
+    {
+      "timestamp": "2026-07-20T23:55:14+09:00",
+      "equity_jpy": 4000399.557045894,
+      "reference_price_jpy": 10179740.821259482,
+      "source": "seeded_demo"
+    },
+    {
+      "timestamp": "2026-07-21T23:55:14+09:00",
+      "equity_jpy": 4007291.91608757,
+      "reference_price_jpy": 10181395.19942069,
+      "source": "seeded_demo"
+    },
+    {
+      "timestamp": "2026-07-22T23:55:14+09:00",
+      "equity_jpy": 4001398.44966063,
+      "reference_price_jpy": 10183049.577581897,
+      "source": "seeded_demo"
+    },
+    {
+      "timestamp": "2026-07-23T23:55:14+09:00",
+      "equity_jpy": 4006792.4697802025,
+      "reference_price_jpy": 10184703.955743104,
+      "source": "seeded_demo"
+    },
+    {
+      "timestamp": "2026-07-24T23:55:14+09:00",
+      "equity_jpy": 4000599.3355688415,
+      "reference_price_jpy": 10186358.333904311,
+      "source": "seeded_demo"
+    },
+    {
+      "timestamp": "2026-07-25T23:55:14+09:00",
+      "equity_jpy": 4008190.9194408325,
+      "reference_price_jpy": 10188012.712065518,
+      "source": "seeded_demo"
+    },
+    {
+      "timestamp": "2026-07-26T23:55:14+09:00",
+      "equity_jpy": 4001398.44966063,
+      "reference_price_jpy": 10189667.090226725,
+      "source": "seeded_demo"
+    },
+    {
+      "timestamp": "2026-07-27T23:55:14+09:00",
+      "equity_jpy": 4005693.6879039933,
+      "reference_price_jpy": 10191321.468387932,
+      "source": "seeded_demo"
+    },
+    {
+      "timestamp": "2026-07-28T23:55:14+09:00",
+      "equity_jpy": 4000998.8926147358,
+      "reference_price_jpy": 10192975.846549138,
+      "source": "seeded_demo"
+    },
+    {
+      "timestamp": "2026-07-29T23:55:14+09:00",
+      "equity_jpy": 4009789.1476244093,
+      "reference_price_jpy": 10194630.224710345,
+      "source": "seeded_demo"
+    },
+    {
+      "timestamp": "2026-07-30T23:55:14+09:00",
+      "equity_jpy": 4002497.231536839,
+      "reference_price_jpy": 10196284.602871552,
+      "source": "seeded_demo"
+    },
+    {
+      "timestamp": "2026-07-31T23:55:14+09:00",
+      "equity_jpy": 4007591.583871991,
+      "reference_price_jpy": 10197938.981032759,
+      "source": "seeded_demo"
+    },
+    {
+      "timestamp": "2026-08-01T23:55:14+09:00",
+      "equity_jpy": 4001997.7852294715,
+      "reference_price_jpy": 10199593.359193966,
+      "source": "seeded_demo"
+    },
+    {
+      "timestamp": "2026-08-02T23:55:14+09:00",
+      "equity_jpy": 4011687.043592407,
+      "reference_price_jpy": 10201247.737355173,
+      "source": "seeded_demo"
+    },
+    {
+      "timestamp": "2026-08-03T23:55:14+09:00",
+      "equity_jpy": 4003895.681197469,
+      "reference_price_jpy": 10202902.11551638,
+      "source": "seeded_demo"
+    },
+    {
+      "timestamp": "2026-08-04T23:55:14+09:00",
+      "equity_jpy": 4010288.593931777,
+      "reference_price_jpy": 10204556.493677586,
+      "source": "seeded_demo"
+    },
+    {
+      "timestamp": "2026-08-05T23:55:14+09:00",
+      "equity_jpy": 4004195.34898189,
+      "reference_price_jpy": 10206210.871838793,
+      "source": "seeded_demo"
+    },
+    {
+      "timestamp": "2026-08-06T23:55:14+09:00",
+      "equity_jpy": 4014433.99828293,
+      "reference_price_jpy": 10207865.25,
+      "source": "seeded_demo"
+    },
+    {
+      "timestamp": "2026-08-07T16:36:14+09:00",
+      "equity_jpy": 4014433.99828293,
+      "reference_price_jpy": 10207865.25,
+      "source": "public_orderbook_paper"
+    }
+  ],
+  "last_scan": {
+    "timestamp": "2026-08-07T16:36:14+09:00",
+    "status": "healthy",
+    "errors": {},
+    "execution_reason": "spread_below_risk_threshold",
+    "executed_trade_id": null
+  }
+}

@@ -12,7 +12,7 @@ import yaml
 
 from arbscanner.config import ScannerConfig, load_config
 from arbscanner.models import Opportunity, OrderBook
-from arbscanner.paper import (
+from arbscanner.paper_ledger import (
     BTC_QUANTUM,
     PaperRiskConfig,
     calculate_metrics,
@@ -56,8 +56,8 @@ CONNECTORS = [
         "priority_reason": "現物Taker手数料の仮定が低く、REST/WebSocketが整理されている",
         "public_status": "connected",
         "private_status": "not_configured",
-        "api_key_env": "GMO_API_KEY",
-        "api_secret_env": "GMO_API_SECRET",
+        "api_key_env": "GMO_COIN_API_KEY",
+        "api_secret_env": "GMO_COIN_API_SECRET",
         "auth_headers": "API-KEY / API-TIMESTAMP / API-SIGN",
         "recommended_permissions": ["資産参照", "注文参照", "約定履歴参照"],
         "production_permission": "現物注文（本番解放時のみ）",
@@ -495,7 +495,7 @@ def _build_dashboard(
         },
         "system": {
             "last_run": now.isoformat(timespec="seconds"),
-            "run_status": "degraded" if errors else "healthy",
+            "run_status": "degraded" if errors or len(books) < 2 else "healthy",
             "public_exchange_count": len(books),
             "configured_exchange_count": len(config.exchanges),
             "errors": errors,
@@ -517,6 +517,11 @@ async def _run() -> None:
     now = datetime.now(JST)
     books, errors = await fetch_orderbooks(config)
 
+    has_cross_venue_data = len(books) >= 2
+    snapshot_source = (
+        "public_orderbook_paper" if has_cross_venue_data else "public_orderbook_unavailable"
+    )
+    snapshot_data_status = "seeded_demo_plus_live_public" if has_cross_venue_data else "seeded_demo"
     existing_state = _load_state()
     if books:
         reference_price = median_reference_price(books)
@@ -536,9 +541,9 @@ async def _run() -> None:
         balances = _decode_balances(state)
 
     risk = PaperRiskConfig(
-        min_net_bps=_decimal(settings.get("min_net_bps"), "5"),
-        max_trade_jpy=_decimal(settings.get("max_trade_jpy"), "100000"),
-        min_trade_jpy=_decimal(settings.get("min_trade_jpy"), "5000"),
+        min_net_bps=_decimal(settings.get("min_net_bps"), "12"),
+        max_trade_jpy=_decimal(settings.get("max_trade_jpy"), "50000"),
+        min_trade_jpy=_decimal(settings.get("min_trade_jpy"), "2000"),
         slippage_bps=_decimal(settings.get("slippage_bps"), "2"),
         daily_loss_limit_jpy=_decimal(
             settings.get("daily_loss_limit_jpy"),
@@ -553,7 +558,9 @@ async def _run() -> None:
 
     trades = list(state.get("trades") or [])
     today_pnl = _today_realized_pnl(trades, now.date().isoformat())
-    execution_reason = "no_eligible_opportunity"
+    execution_reason = (
+        "no_eligible_opportunity" if has_cross_venue_data else "insufficient_public_orderbooks"
+    )
     executed_trade: dict[str, Any] | None = None
     if today_pnl <= -risk.daily_loss_limit_jpy:
         execution_reason = "daily_loss_limit"
@@ -585,18 +592,18 @@ async def _run() -> None:
             "timestamp": now.isoformat(timespec="seconds"),
             "equity_jpy": equity,
             "reference_price_jpy": reference_price,
-            "source": "public_orderbook_paper",
+            "source": snapshot_source,
         }
     )
     state.update(
         {
-            "data_status": "seeded_demo_plus_live_public",
+            "data_status": snapshot_data_status,
             "balances": balances,
             "trades": trades[-1000:],
             "equity_history": history[-2000:],
             "last_scan": {
                 "timestamp": now.isoformat(timespec="seconds"),
-                "status": "degraded" if errors else "healthy",
+                "status": "degraded" if errors or not has_cross_venue_data else "healthy",
                 "errors": errors,
                 "execution_reason": execution_reason,
                 "executed_trade_id": executed_trade.get("id") if executed_trade else None,

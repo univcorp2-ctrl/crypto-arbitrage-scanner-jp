@@ -314,6 +314,7 @@ function humanizeReason(reason) {
     below_min_trade: "最小取引額未満",
     daily_loss_limit: "日次損失上限で停止",
     missing_orderbook: "板データ不足",
+    insufficient_public_orderbooks: "公開板が2取引所未満",
   };
   return map[reason] || reason || "監視中";
 }

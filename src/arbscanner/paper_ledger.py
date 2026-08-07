@@ -90,12 +90,8 @@ def execute_opportunity(
     sell_fee_rate = fees.get(opportunity.sell_exchange, Decimal("0"))
     slippage_rate = risk.slippage_bps / BPS
 
-    buy_price = (best_ask.price * (Decimal("1") + slippage_rate)).quantize(
-        MONEY_QUANTUM
-    )
-    sell_price = (best_bid.price * (Decimal("1") - slippage_rate)).quantize(
-        MONEY_QUANTUM
-    )
+    buy_price = (best_ask.price * (Decimal("1") + slippage_rate)).quantize(MONEY_QUANTUM)
+    sell_price = (best_bid.price * (Decimal("1") - slippage_rate)).quantize(MONEY_QUANTUM)
     max_by_cash = buy_wallet["JPY"] / (buy_price * (Decimal("1") + buy_fee_rate))
     max_by_inventory = sell_wallet["BTC"]
     max_by_risk = risk.max_trade_jpy / buy_price
@@ -128,16 +124,12 @@ def execute_opportunity(
     sell_wallet["BTC"] -= quantity
     sell_wallet["JPY"] += cash_received
 
-    observed_slippage = (
-        (buy_price - best_ask.price) * quantity
-        + (best_bid.price - sell_price) * quantity
-    )
+    observed_slippage = (buy_price - best_ask.price) * quantity + (
+        best_bid.price - sell_price
+    ) * quantity
     execution_gross_bps = ((sell_price - buy_price) / buy_price) * BPS
     compact_timestamp = timestamp.replace("-", "").replace(":", "").replace("+", "p")
-    trade_id = (
-        f"paper-{compact_timestamp}-{opportunity.buy_exchange}-"
-        f"{opportunity.sell_exchange}"
-    )
+    trade_id = f"paper-{compact_timestamp}-{opportunity.buy_exchange}-{opportunity.sell_exchange}"
     return (
         {
             "id": trade_id,
@@ -170,8 +162,7 @@ def portfolio_equity(
 ) -> Decimal:
     return sum(
         (
-            wallet.get("JPY", Decimal("0"))
-            + wallet.get("BTC", Decimal("0")) * reference_price
+            wallet.get("JPY", Decimal("0")) + wallet.get("BTC", Decimal("0")) * reference_price
             for wallet in balances.values()
         ),
         start=Decimal("0"),
@@ -218,11 +209,7 @@ def calculate_metrics(
 
     downside_squares = [min(item, 0.0) ** 2 for item in usable_returns]
     downside_deviation = sqrt(fmean(downside_squares)) if downside_squares else 0.0
-    sortino = (
-        return_mean / downside_deviation * sqrt(365)
-        if downside_deviation > 0
-        else None
-    )
+    sortino = return_mean / downside_deviation * sqrt(365) if downside_deviation > 0 else None
 
     last_equity = daily_rows[-1]["equity_jpy"] if daily_rows else float(initial_capital_jpy)
     total_return = float(last_equity) / float(initial_capital_jpy) - 1.0
@@ -233,11 +220,7 @@ def calculate_metrics(
         (float(item["drawdown_pct"]) for item in daily_rows),
         default=0.0,
     )
-    calmar = (
-        annualized_return / abs(max_drawdown_pct / 100)
-        if max_drawdown_pct < 0
-        else None
-    )
+    calmar = annualized_return / abs(max_drawdown_pct / 100) if max_drawdown_pct < 0 else None
     annualized_volatility = return_std * sqrt(365) * 100
 
     trade_pnls = [float(item.get("net_pnl_jpy", 0)) for item in trades]
@@ -268,12 +251,8 @@ def calculate_metrics(
         "calmar_ratio": round(calmar, 4) if calmar is not None else None,
         "annualized_volatility_pct": round(annualized_volatility, 6),
         "max_drawdown_pct": round(max_drawdown_pct, 6),
-        "win_rate_pct": (
-            round(len(wins) / len(trade_pnls) * 100, 4) if trade_pnls else 0.0
-        ),
-        "profit_factor": (
-            round(profit_factor, 4) if profit_factor is not None else None
-        ),
+        "win_rate_pct": (round(len(wins) / len(trade_pnls) * 100, 4) if trade_pnls else 0.0),
+        "profit_factor": (round(profit_factor, 4) if profit_factor is not None else None),
         "trade_count": len(trades),
         "average_trade_pnl_jpy": round(
             fmean(trade_pnls) if trade_pnls else 0.0,
