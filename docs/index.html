@@ -1,0 +1,226 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <meta name="description" content="国内暗号資産アービトラージのペーパートレード運用ダッシュボード">
+  <title>ArbOps — Paper Execution Console</title>
+  <link rel="stylesheet" href="assets/styles.css">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="brand">
+        <span class="brand-mark">A</span>
+        <div>
+          <strong>ArbOps</strong>
+          <small>Execution Console</small>
+        </div>
+      </div>
+      <nav class="nav" aria-label="メインナビゲーション">
+        <button class="nav-item active" data-view="overview"><span>⌂</span>概要</button>
+        <button class="nav-item" data-view="assets"><span>◫</span>資産</button>
+        <button class="nav-item" data-view="trades"><span>⇄</span>取引履歴</button>
+        <button class="nav-item" data-view="performance"><span>⌁</span>パフォーマンス</button>
+        <button class="nav-item" data-view="exchanges"><span>◎</span>取引所</button>
+        <button class="nav-item" data-view="api"><span>⌘</span>API接続</button>
+        <button class="nav-item" data-view="risk"><span>◇</span>リスク・システム</button>
+      </nav>
+      <div class="sidebar-foot">
+        <div class="mode-pill"><span class="pulse"></span>PAPER ONLY</div>
+        <small>実注文・出金はロック中</small>
+      </div>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">BTC / JPY · PREFUNDED ARBITRAGE</p>
+          <h1 id="page-title">運用概要</h1>
+        </div>
+        <div class="topbar-actions">
+          <div class="freshness">
+            <span id="health-dot" class="health-dot"></span>
+            <div><small>最終更新</small><strong id="updated-at">読み込み中</strong></div>
+          </div>
+          <button id="refresh-button" class="icon-button" type="button" aria-label="再読み込み">↻</button>
+        </div>
+      </header>
+
+      <div class="data-banner" id="data-banner">
+        <strong>公開ペーパーモード</strong>
+        <span id="data-banner-text">シードデータと公開板スナップショットを読み込んでいます。</span>
+      </div>
+
+      <section class="view active" id="view-overview">
+        <div class="metric-grid metric-grid-primary">
+          <article class="metric-card hero-metric">
+            <div class="metric-label">総資産評価額 <span class="tag">JPY</span></div>
+            <strong id="portfolio-value">—</strong>
+            <div id="portfolio-return" class="metric-change">—</div>
+          </article>
+          <article class="metric-card">
+            <div class="metric-label">累積損益</div>
+            <strong id="total-pnl">—</strong>
+            <div class="metric-sub">実現＋在庫時価</div>
+          </article>
+          <article class="metric-card">
+            <div class="metric-label">本日損益</div>
+            <strong id="today-pnl">—</strong>
+            <div class="metric-sub">JST日次</div>
+          </article>
+          <article class="metric-card">
+            <div class="metric-label">稼働状態</div>
+            <strong id="run-status">—</strong>
+            <div id="run-reason" class="metric-sub">—</div>
+          </article>
+        </div>
+
+        <div class="two-column wide-left">
+          <article class="panel chart-panel">
+            <div class="panel-head">
+              <div><p class="eyebrow">EQUITY CURVE</p><h2>資産推移</h2></div>
+              <div class="legend"><span class="legend-dot cyan"></span>総資産</div>
+            </div>
+            <div id="equity-chart" class="chart chart-large"></div>
+          </article>
+          <article class="panel">
+            <div class="panel-head">
+              <div><p class="eyebrow">LIVE VENUES</p><h2>取引所ヘルス</h2></div>
+              <span id="venue-count" class="counter">—</span>
+            </div>
+            <div id="venue-health-list" class="health-list"></div>
+          </article>
+        </div>
+
+        <div class="two-column">
+          <article class="panel">
+            <div class="panel-head">
+              <div><p class="eyebrow">OPPORTUNITY MONITOR</p><h2>検出機会</h2></div>
+              <span class="tag">手数料・スリッページ後</span>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>ルート</th><th>Net bps</th><th>概算損益</th><th>判定</th></tr></thead>
+                <tbody id="opportunity-table-body"></tbody>
+              </table>
+            </div>
+          </article>
+          <article class="panel">
+            <div class="panel-head">
+              <div><p class="eyebrow">DAILY PNL</p><h2>日次損益</h2></div>
+              <span id="daily-range" class="tag">30日</span>
+            </div>
+            <div id="daily-pnl-chart" class="chart chart-medium"></div>
+          </article>
+        </div>
+      </section>
+
+      <section class="view" id="view-assets">
+        <div class="section-intro">
+          <div><p class="eyebrow">CAPITAL MAP</p><h2>どこに、何が、いくらあるか</h2></div>
+          <p>全残高はシミュレーションです。各取引所へJPYとBTCを事前配賦し、送金なしで両建てします。</p>
+        </div>
+        <div class="two-column wide-left">
+          <article class="panel">
+            <div class="panel-head"><div><p class="eyebrow">BY VENUE</p><h2>取引所別資産</h2></div></div>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>取引所</th><th>JPY</th><th>BTC</th><th>BTC評価額</th><th>合計</th><th>配分</th><th>在庫</th></tr></thead>
+                <tbody id="balance-table-body"></tbody>
+              </table>
+            </div>
+          </article>
+          <article class="panel">
+            <div class="panel-head"><div><p class="eyebrow">ALLOCATION</p><h2>資産配分</h2></div></div>
+            <div id="allocation-chart" class="allocation-chart"></div>
+          </article>
+        </div>
+        <div class="metric-grid" id="capital-breakdown"></div>
+      </section>
+
+      <section class="view" id="view-trades">
+        <div class="section-intro">
+          <div><p class="eyebrow">EXECUTION LEDGER</p><h2>取引履歴</h2></div>
+          <p>買い・売りの両レッグ、費用、スリッページ、最終損益を一つの監査行として記録します。</p>
+        </div>
+        <article class="panel">
+          <div class="panel-head">
+            <div><p class="eyebrow">FILLS</p><h2>アービトラージ約定台帳</h2></div>
+            <span id="trade-count" class="counter">—</span>
+          </div>
+          <div class="table-wrap tall-table">
+            <table>
+              <thead><tr><th>日時</th><th>ルート</th><th>数量</th><th>買値</th><th>売値</th><th>Net bps</th><th>費用</th><th>損益</th><th>データ</th></tr></thead>
+              <tbody id="trade-table-body"></tbody>
+            </table>
+          </div>
+        </article>
+      </section>
+
+      <section class="view" id="view-performance">
+        <div class="metric-grid" id="performance-metrics"></div>
+        <div class="two-column">
+          <article class="panel chart-panel">
+            <div class="panel-head"><div><p class="eyebrow">DRAWDOWN</p><h2>ドローダウン</h2></div></div>
+            <div id="drawdown-chart" class="chart chart-medium"></div>
+          </article>
+          <article class="panel chart-panel">
+            <div class="panel-head"><div><p class="eyebrow">DAILY RETURNS</p><h2>日次損益分布</h2></div></div>
+            <div id="performance-pnl-chart" class="chart chart-medium"></div>
+          </article>
+        </div>
+        <article class="panel">
+          <div class="panel-head"><div><p class="eyebrow">DAILY LEDGER</p><h2>日次パフォーマンス</h2></div></div>
+          <div class="table-wrap tall-table"><table><thead><tr><th>日付</th><th>総資産</th><th>日次損益</th><th>日次リターン</th><th>ドローダウン</th></tr></thead><tbody id="daily-table-body"></tbody></table></div>
+        </article>
+      </section>
+
+      <section class="view" id="view-exchanges">
+        <div class="section-intro">
+          <div><p class="eyebrow">MARKET CONNECTIVITY</p><h2>接続取引所</h2></div>
+          <p>まずPublic APIの安定性と板品質を観測し、Private read-only、本番注文の順に段階解放します。</p>
+        </div>
+        <div id="exchange-card-grid" class="exchange-grid"></div>
+        <article class="panel">
+          <div class="panel-head"><div><p class="eyebrow">LIVE QUOTES</p><h2>現在の最良気配</h2></div></div>
+          <div class="table-wrap"><table><thead><tr><th>取引所</th><th>Bid</th><th>Ask</th><th>板内スプレッド</th><th>Taker仮定</th><th>状態</th></tr></thead><tbody id="exchange-table-body"></tbody></table></div>
+        </article>
+      </section>
+
+      <section class="view" id="view-api">
+        <div class="security-callout">
+          <div class="shield">⌾</div>
+          <div><strong>この公開画面はAPIキーの保管場所ではありません</strong><p>入力欄は配置・命名を確認する一時的なUIです。値は送信・保存しません。実値は非公開バックエンドまたはGitHub / Cloudflareの暗号化Secretへ入れます。</p></div>
+        </div>
+        <div class="section-intro">
+          <div><p class="eyebrow">CREDENTIAL ROUTING</p><h2>取引所API設定</h2></div>
+          <p>優先順、必要な環境変数名、最小権限、認証ヘッダーを取引所ごとにまとめています。</p>
+        </div>
+        <div id="connector-grid" class="connector-grid"></div>
+      </section>
+
+      <section class="view" id="view-risk">
+        <div class="section-intro">
+          <div><p class="eyebrow">SAFETY ENVELOPE</p><h2>リスク制御・システム状態</h2></div>
+          <p>本番注文はコードと設定の両方でロックされています。</p>
+        </div>
+        <div id="risk-grid" class="metric-grid"></div>
+        <div class="two-column">
+          <article class="panel"><div class="panel-head"><div><p class="eyebrow">SYSTEM</p><h2>実行状態</h2></div></div><div id="system-grid" class="definition-list"></div></article>
+          <article class="panel"><div class="panel-head"><div><p class="eyebrow">ASSUMPTIONS</p><h2>シミュレーション前提</h2></div></div><div id="assumption-grid" class="definition-list"></div></article>
+        </div>
+      </section>
+
+      <footer>
+        <span>ArbOps Paper Console</span>
+        <span>Investment simulation only · No live orders · No withdrawals</span>
+      </footer>
+    </main>
+  </div>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <noscript>このダッシュボードにはJavaScriptが必要です。</noscript>
+  <script src="assets/app.js" defer></script>
+</body>
+</html>
