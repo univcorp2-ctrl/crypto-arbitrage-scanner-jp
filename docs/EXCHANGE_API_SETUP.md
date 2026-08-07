@@ -1,58 +1,71 @@
-# 国内取引所API接続調査と設定方針
+# 取引所API接続計画とキー配置
 
-調査日: 2026-08-07  
-登録状況の基準: 金融庁「暗号資産交換業者登録一覧」令和8年6月30日現在
+調査日: 2026-08-07
 
-## 接続順序
+この文書は、ペーパートレードから少額実運用へ進む前の接続設計です。現行コードは**公開板の取得とペーパー約定だけ**を行い、認証付き注文・出金は実装していません。
 
-### Phase 1: 既存Public Adapterを運用監視へ統合
+## 接続優先順位
 
-| 取引所 | 登録番号 | Public pair | 画面に表示する環境変数 | 現状 |
-|---|---|---|---|---|
-| bitbank | 関東財務局長 第00004号 | `btc_jpy` | `BITBANK_API_KEY`, `BITBANK_API_SECRET` | Public板接続済み |
-| GMOコイン | 関東財務局長 第00006号 | `BTC` | `GMOCOIN_API_KEY`, `GMOCOIN_API_SECRET` | Public板接続済み |
-| bitFlyer | 関東財務局長 第00003号 | `BTC_JPY` | `BITFLYER_API_KEY`, `BITFLYER_API_SECRET` | Public板接続済み |
-| Coincheck | 関東財務局長 第00014号 | `btc_jpy` | `COINCHECK_ACCESS_KEY`, `COINCHECK_SECRET_KEY` | Public板接続済み |
+| 段階 | 取引所 | 公開板 | ペーパー | 認証API調査 | 次の実装 |
+|---|---|---:|---:|---:|---|
+| 1 | bitbank | 実装済み | 対応 | 完了 | 残高参照アダプター |
+| 1 | GMOコイン | 実装済み | 対応 | 完了 | 残高参照アダプター |
+| 1 | bitFlyer | 実装済み | 対応 | 完了 | 残高参照アダプター |
+| 1 | Coincheck | 実装済み | 対応 | 完了 | 残高参照アダプター |
+| 2 | OKJ | 未実装 | 未対応 | 完了 | 公開板アダプター |
+| 2 | Zaif | 未実装 | 未対応 | 完了 | 公開板アダプター |
 
-Phase 1ではAPIキー不要の板情報だけで本番相当ペーパートレードを行います。Private APIは残高・約定履歴の照合を実装する段階まで使いません。
+初期4社は、既存の公開板アダプターを流用でき、JPY現物BTCの比較をすぐ継続できるため優先します。追加2社は、板の正規化、手数料体系、最小注文数量、レート制限をテストしてから組み込みます。
 
-### Phase 2: 板厚と実効コストを実測して追加
+## サーバーに置く環境変数
 
-| 取引所 | 登録番号 | 環境変数 | 採否条件 |
-|---|---|---|---|
-| BitTrade | 関東財務局長 第00007号 | `BITTRADE_ACCESS_KEY`, `BITTRADE_SECRET_KEY` | BTC/JPY板厚、レート制限、数量精度を実測 |
-| Zaif | 近畿財務局長 第00001号 | `ZAIF_API_KEY`, `ZAIF_API_SECRET` | 板厚、障害率、約定品質を実測 |
-| Binance Japan | 関東財務局長 第00031号 | `BINANCE_JP_API_KEY`, `BINANCE_JP_API_SECRET` | 日本口座で提供されるJPYペアを実行時照合 |
+```dotenv
+BITBANK_API_KEY=YOUR_SECRET_HERE
+BITBANK_API_SECRET=YOUR_SECRET_HERE
 
-「銘柄を扱っている」ことと「取引所形式のJPY板がAPI提供されている」ことは別です。接続時に markets/symbols endpoint、最小数量、価格刻み、注文種別、メンテナンス状態を必ず機械照合します。
+GMO_COIN_API_KEY=YOUR_SECRET_HERE
+GMO_COIN_API_SECRET=YOUR_SECRET_HERE
 
-## 取引所別の認証要点
+BITFLYER_API_KEY=YOUR_SECRET_HERE
+BITFLYER_API_SECRET=YOUR_SECRET_HERE
 
-- **bitbank**: `ACCESS-KEY` とHMAC-SHA256署名。Time Window方式が利用可能。取得系と更新系にレート制限があります。
-- **GMOコイン**: `API-KEY`, `API-TIMESTAMP`, `API-SIGN`。機能別権限とIP制限を設定できます。
-- **bitFlyer**: `ACCESS-KEY`, `ACCESS-TIMESTAMP`, `ACCESS-SIGN`。API Keyごとに権限を設定できます。
-- **Coincheck**: `ACCESS-KEY`, 単調増加する `ACCESS-NONCE`, `ACCESS-SIGNATURE`。機能別権限とIP制限があります。
-- **BitTrade**: AccessKey/SecretKey。読取、取引、出金の権限が分離されています。
-- **Zaif**: API Key/Secret Key。Info/Trade/Withdrawを分離し、Withdrawは付けません。
-- **Binance Japan**: API Key/Secret Key。ReadingとSpot Tradingを分離し、IP制限を必須とします。
+COINCHECK_API_KEY=YOUR_SECRET_HERE
+COINCHECK_API_SECRET=YOUR_SECRET_HERE
 
-## キー発行ポリシー
+# 次段候補
+OKJ_API_KEY=YOUR_SECRET_HERE
+OKJ_API_SECRET=YOUR_SECRET_HERE
+OKJ_API_PASSPHRASE=YOUR_SECRET_HERE
+ZAIF_API_KEY=YOUR_SECRET_HERE
+ZAIF_API_SECRET=YOUR_SECRET_HERE
+```
 
-1. 最初のキーは読取専用にする
-2. 注文実装時は別の注文専用キーを作る
-3. 出金・送金権限は常に無効
-4. 固定IPまたは許可IPリストを設定
-5. キーをリポジトリ、Issue、ログ、SQLite、スクリーンショットへ残さない
-6. 本番サーバーの環境変数またはSecret Managerから注入
-7. 90日以内のローテーションと漏えい時即時失効手順を準備
+画面の「取引所・API接続」では、キー値をサーバーへ送らず、この形式のテンプレートだけをブラウザ内で生成します。アプリのAPIは環境変数の**有無だけ**を返し、値は返しません。
 
-## 公式資料
+## 取引所側の発行方針
 
-- 金融庁登録一覧: `https://www.fsa.go.jp/menkyo/menkyoj/kasoutuka.pdf`
-- bitbank API: `https://github.com/bitbankinc/bitbank-api-docs/blob/master/rest-api_JP.md`
-- GMOコイン API: `https://api.coin.z.com/docs/`
-- bitFlyer Lightning API: `https://lightning.bitflyer.com/docs`
-- Coincheck Exchange API: `https://coincheck.com/documents/exchange/api`
-- BitTrade API: `https://api-doc.bittrade.co.jp/`
-- Zaif API: `https://zaif-api-document.readthedocs.io/ja/latest/`
-- Binance Spot API: `https://developers.binance.com/docs/binance-spot-api-docs/rest-api`
+1. 参照権限だけで残高取得を確認する。
+2. 固定IPが用意できる場合は許可IPを限定する。
+3. 注文権限は、ペーパー実績、少額上限、日次損失上限、停止スイッチを検証した後に追加する。
+4. 出金・送付権限は付与しない。
+5. キーを取引所ごとに分離し、用途名と発行日を記録する。
+6. ローテーション時は旧キーを停止してから新キーへ切り替える。
+
+## 公式仕様
+
+- bitbank API docs: https://github.com/bitbankinc/bitbank-api-docs
+- GMOコイン API: https://api.coin.z.com/docs/
+- bitFlyer Lightning API: https://lightning.bitflyer.com/docs
+- Coincheck Exchange API: https://coincheck.com/documents/exchange/api
+- OKJ API v5: https://www.okj.com/docs-v5/ja/
+- Zaif API: https://zaif-api-document.readthedocs.io/ja/latest/
+
+## 実運用へ進む順序
+
+1. 公開板の欠損率・遅延・レート制限を7日以上記録する。
+2. 認証APIは残高参照のみを実装する。
+3. 取引所画面の残高とローカル台帳を毎日照合する。
+4. 注文生成は行うが送信しない「shadow order」を記録する。
+5. 最小額のIOC/指値で片側約定、取消、部分約定を検証する。
+6. 両建て失敗時のヘッジ、再配分、停止条件を検証する。
+7. 日次損失上限と総建玉上限を満たす範囲でのみ少額運用する。
