@@ -15,7 +15,7 @@ def test_dashboard_and_api_are_available(tmp_path: Path) -> None:
         exchanges = client.get("/api/exchanges")
 
         assert root.status_code == 200
-        assert "ARB OPS" in root.text
+        assert "ARB CONTROL" in root.text
         assert overview.status_code == 200
         assert overview.json()["status"]["real_order_submission"] is False
         assert exchanges.status_code == 200
