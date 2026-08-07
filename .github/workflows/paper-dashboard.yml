@@ -15,10 +15,11 @@ concurrency:
 jobs:
   simulate:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: '3.11'
 
@@ -27,13 +28,13 @@ jobs:
           python -m pip install --upgrade pip
           pip install -e .
 
-      - name: Prepare config
+      - name: Prepare scanner config
         run: cp config.example.yml config.yml
 
-      - name: Run paper trading snapshot
+      - name: Run one public-orderbook paper cycle
         run: python scripts/run_paper_dashboard.py
 
-      - name: Validate generated data
+      - name: Validate generated ledger
         run: |
           python -m json.tool data/paper_state.json >/dev/null
           python -m json.tool docs/data/dashboard.json >/dev/null
