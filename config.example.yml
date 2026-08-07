@@ -5,21 +5,27 @@ request_timeout_seconds: 8
 exchanges:
   bitbank:
     enabled: true
-    taker_fee_bps: 10
     pair: btc_jpy
-
+    taker_fee_bps: 10
   gmocoin:
     enabled: true
-    taker_fee_bps: 5
     pair: BTC
-
+    taker_fee_bps: 5
   bitflyer:
     enabled: true
-    taker_fee_bps: 15
     pair: BTC_JPY
-
+    taker_fee_bps: 15
   coincheck:
     enabled: true
-    # Coincheck fees can differ by pair and account context; adjust from the official fee page.
-    taker_fee_bps: 0
     pair: btc_jpy
+    taker_fee_bps: 0
+
+# The web paper engine reads these values from environment variables so they can
+# be changed without committing operational settings or secrets.
+paper:
+  min_net_bps: 12
+  max_trade_jpy: 50000
+  min_trade_jpy: 2000
+  slippage_bps: 2
+  rebalance_reserve_bps: 3
+  interval_seconds: 30
