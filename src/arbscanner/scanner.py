@@ -17,7 +17,9 @@ async def fetch_orderbooks(config: ScannerConfig) -> tuple[list[OrderBook], dict
     """
 
     timeout = httpx.Timeout(config.request_timeout_seconds)
-    async with httpx.AsyncClient(timeout=timeout, headers={"User-Agent": "arbscanner/0.1"}) as client:
+    async with httpx.AsyncClient(
+        timeout=timeout, headers={"User-Agent": "arbscanner/0.1"}
+    ) as client:
         tasks = [
             _fetch_one(client, config.market, exchange_config)
             for exchange_config in config.exchanges
@@ -79,9 +81,7 @@ def calculate_opportunities(
             if top_size <= 0:
                 continue
 
-            gross_spread_bps = ((sell_bid.price - buy_ask.price) / buy_ask.price) * Decimal(
-                "10000"
-            )
+            gross_spread_bps = ((sell_bid.price - buy_ask.price) / buy_ask.price) * Decimal("10000")
             buy_cost = buy_ask.price * (Decimal("1") + buy_fee)
             sell_proceeds = sell_bid.price * (Decimal("1") - sell_fee)
             net_spread = sell_proceeds - buy_cost

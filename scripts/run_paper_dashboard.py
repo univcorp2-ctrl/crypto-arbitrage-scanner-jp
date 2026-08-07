@@ -283,9 +283,7 @@ def _seed_state(
     started_at = now - timedelta(days=len(pattern) + 1)
     history: list[dict[str, Any]] = [
         {
-            "timestamp": started_at.replace(hour=23, minute=55).isoformat(
-                timespec="seconds"
-            ),
+            "timestamp": started_at.replace(hour=23, minute=55).isoformat(timespec="seconds"),
             "equity_jpy": equity,
             "reference_price_jpy": initial_reference,
             "source": "seeded_demo",
@@ -294,15 +292,11 @@ def _seed_state(
     for index, delta in enumerate(pattern, start=1):
         equity += Decimal(str(delta)) * scale
         progress = Decimal(index) / Decimal(len(pattern))
-        point_reference = initial_reference + (
-            reference_price - initial_reference
-        ) * progress
+        point_reference = initial_reference + (reference_price - initial_reference) * progress
         point_time = started_at + timedelta(days=index)
         history.append(
             {
-                "timestamp": point_time.replace(hour=23, minute=55).isoformat(
-                    timespec="seconds"
-                ),
+                "timestamp": point_time.replace(hour=23, minute=55).isoformat(timespec="seconds"),
                 "equity_jpy": equity,
                 "reference_price_jpy": point_reference,
                 "source": "seeded_demo",
@@ -351,9 +345,7 @@ def _opportunity_rows(
             item.top_size,
             risk.max_trade_jpy / item.buy_ask,
         )
-        estimated_profit = (
-            item.buy_ask * max_quantity * after_slippage / Decimal("10000")
-        )
+        estimated_profit = item.buy_ask * max_quantity * after_slippage / Decimal("10000")
         rows.append(
             {
                 "market": item.market,
@@ -390,11 +382,7 @@ def _exchange_rows(
             {
                 "id": item.name,
                 "name": next(
-                    (
-                        connector["name"]
-                        for connector in CONNECTORS
-                        if connector["id"] == item.name
-                    ),
+                    (connector["name"] for connector in CONNECTORS if connector["id"] == item.name),
                     item.name,
                 ),
                 "status": "connected" if book else "degraded",
@@ -421,7 +409,9 @@ def _balance_rows(
         btc_value = wallet["BTC"] * reference_price
         total = wallet["JPY"] + btc_value
         cash_ratio = wallet["JPY"] / total * Decimal("100") if total else Decimal("0")
-        inventory_status = "balanced" if Decimal("20") <= cash_ratio <= Decimal("80") else "rebalance"
+        inventory_status = (
+            "balanced" if Decimal("20") <= cash_ratio <= Decimal("80") else "rebalance"
+        )
         rows.append(
             {
                 "exchange": exchange,
@@ -458,9 +448,7 @@ def _build_dashboard(
     trades = list(state.get("trades") or [])
     history = list(state.get("equity_history") or [])
     metrics, daily = calculate_metrics(history, trades, initial_capital)
-    live_points = [
-        item for item in history if item.get("source") == "public_orderbook_paper"
-    ]
+    live_points = [item for item in history if item.get("source") == "public_orderbook_paper"]
     data_status = "seeded_demo_plus_live_public" if live_points else "seeded_demo"
 
     return {
@@ -521,7 +509,9 @@ def _build_dashboard(
 
 
 async def _run() -> None:
-    config_path = SCANNER_CONFIG_PATH if SCANNER_CONFIG_PATH.exists() else ROOT / "config.example.yml"
+    config_path = (
+        SCANNER_CONFIG_PATH if SCANNER_CONFIG_PATH.exists() else ROOT / "config.example.yml"
+    )
     config = load_config(config_path)
     settings = _load_paper_settings()
     now = datetime.now(JST)
@@ -609,9 +599,7 @@ async def _run() -> None:
                 "status": "degraded" if errors else "healthy",
                 "errors": errors,
                 "execution_reason": execution_reason,
-                "executed_trade_id": executed_trade.get("id")
-                if executed_trade
-                else None,
+                "executed_trade_id": executed_trade.get("id") if executed_trade else None,
             },
         }
     )

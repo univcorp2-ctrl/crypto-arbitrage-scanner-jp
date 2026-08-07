@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import argparse
 import asyncio
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from decimal import Decimal
 from pathlib import Path
 
@@ -21,7 +21,9 @@ def main() -> None:
             request_timeout_seconds=config.request_timeout_seconds,
             exchanges=config.exchanges,
         )
-    min_net_bps = Decimal(str(args.min_net_bps)) if args.min_net_bps is not None else config.min_net_bps
+    min_net_bps = (
+        Decimal(str(args.min_net_bps)) if args.min_net_bps is not None else config.min_net_bps
+    )
 
     if args.watch and args.watch > 0:
         asyncio.run(_watch(config, min_net_bps=min_net_bps, seconds=args.watch))
@@ -69,7 +71,7 @@ def _print_result(
     *,
     min_net_bps: Decimal,
 ) -> None:
-    now = datetime.now(timezone.utc).astimezone().isoformat(timespec="seconds")
+    now = datetime.now(UTC).astimezone().isoformat(timespec="seconds")
     print(f"\n[{now}] market={market} min_net_bps={_fmt(min_net_bps)}")
 
     print("\nOrder books")

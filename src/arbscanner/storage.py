@@ -256,8 +256,7 @@ class PaperStore:
     def list_balances(self) -> list[dict[str, Any]]:
         with self._connect() as connection:
             rows = connection.execute(
-                "SELECT exchange, asset, amount, updated_at FROM balances "
-                "ORDER BY exchange, asset"
+                "SELECT exchange, asset, amount, updated_at FROM balances ORDER BY exchange, asset"
             ).fetchall()
         return [dict(row) for row in rows]
 
@@ -387,9 +386,7 @@ class PaperStore:
                 )
             self._insert_equity(connection, equity)
 
-    def _insert_equity(
-        self, connection: sqlite3.Connection, snapshot: dict[str, Any]
-    ) -> None:
+    def _insert_equity(self, connection: sqlite3.Connection, snapshot: dict[str, Any]) -> None:
         connection.execute(
             """
             INSERT INTO equity_snapshots (
@@ -405,9 +402,7 @@ class PaperStore:
 
     def get_setting(self, key: str) -> str | None:
         with self._connect() as connection:
-            row = connection.execute(
-                "SELECT value FROM settings WHERE key = ?", (key,)
-            ).fetchone()
+            row = connection.execute("SELECT value FROM settings WHERE key = ?", (key,)).fetchone()
         return str(row["value"]) if row is not None else None
 
     def set_setting(self, key: str, value: str) -> None:

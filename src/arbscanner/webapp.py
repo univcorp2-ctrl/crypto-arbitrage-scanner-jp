@@ -148,9 +148,7 @@ def create_app(
         return {"mode": mode}
 
     @application.put("/api/kill-switch")
-    async def update_kill_switch(
-        payload: KillSwitchUpdate, request: Request
-    ) -> dict[str, Any]:
+    async def update_kill_switch(payload: KillSwitchUpdate, request: Request) -> dict[str, Any]:
         enabled = _engine(request).set_kill_switch(payload.enabled)
         return {"kill_switch": enabled}
 

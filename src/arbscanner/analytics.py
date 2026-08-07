@@ -30,9 +30,7 @@ def daily_equity_points(equity_points: list[dict[str, Any]]) -> list[dict[str, A
         source = by_day[day]
         equity = float(source.get("equity_jpy") or 0)
         daily_pnl = 0.0 if previous_equity is None else equity - previous_equity
-        daily_return = (
-            0.0 if previous_equity in {None, 0.0} else (equity / previous_equity) - 1.0
-        )
+        daily_return = 0.0 if previous_equity in {None, 0.0} else (equity / previous_equity) - 1.0
         peak = equity if peak is None else max(peak, equity)
         drawdown = 0.0 if not peak else (equity / peak) - 1.0
         daily.append(
@@ -97,9 +95,7 @@ def calculate_metrics(
     )
     downside_annual = downside_daily * math.sqrt(365) if downside_daily else None
     sortino = (
-        mean_return * 365 / downside_annual
-        if mean_return is not None and downside_annual
-        else None
+        mean_return * 365 / downside_annual if mean_return is not None and downside_annual else None
     )
 
     first_time = _parse_datetime(equity_points[0].get("recorded_at"))

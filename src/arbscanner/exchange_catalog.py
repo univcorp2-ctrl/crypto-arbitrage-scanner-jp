@@ -184,9 +184,7 @@ def catalog_payload() -> list[dict[str, object]]:
     payload: list[dict[str, object]] = []
     for exchange in EXCHANGES:
         item = asdict(exchange)
-        item["configured"] = all(
-            bool(os.getenv(field.env_var)) for field in exchange.credentials
-        )
+        item["configured"] = all(bool(os.getenv(field.env_var)) for field in exchange.credentials)
         item["secret_values_exposed"] = False
         payload.append(item)
     return payload

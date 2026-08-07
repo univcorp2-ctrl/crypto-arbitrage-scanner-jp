@@ -551,17 +551,13 @@ class SimulationStore:
         downside = [min(value, 0.0) for value in returns]
         downside_deviation = math.sqrt(statistics.fmean(value * value for value in downside))
         sortino = (
-            mean_return / downside_deviation * math.sqrt(365.0)
-            if downside_deviation > 0.0
-            else 0.0
+            mean_return / downside_deviation * math.sqrt(365.0) if downside_deviation > 0.0 else 0.0
         )
         total_return = end_equity / start_equity - 1.0 if start_equity > 0.0 else 0.0
         periods = max(len(returns), 1)
         annualized_return = (1.0 + total_return) ** (365.0 / periods) - 1.0
         max_drawdown = min(float(item["drawdown_pct"]) for item in daily)
-        calmar = (
-            annualized_return * 100.0 / abs(max_drawdown) if max_drawdown < 0.0 else 0.0
-        )
+        calmar = annualized_return * 100.0 / abs(max_drawdown) if max_drawdown < 0.0 else 0.0
 
         with self._lock:
             rows = self._connection.execute(
@@ -577,7 +573,9 @@ class SimulationStore:
         realized_pnl = sum(float(row["pnl_jpy"]) for row in executed)
         fees = sum(float(row["fees_jpy"]) for row in executed)
         turnover = sum(float(row["quantity"]) * float(row["buy_price"]) for row in executed)
-        avg_net_bps = statistics.fmean(float(row["net_bps"]) for row in executed) if executed else 0.0
+        avg_net_bps = (
+            statistics.fmean(float(row["net_bps"]) for row in executed) if executed else 0.0
+        )
         avg_latency = (
             statistics.fmean(float(row["latency_ms"]) for row in executed) if executed else 0.0
         )
@@ -772,9 +770,7 @@ class SimulationEngine:
                 source=source,
                 max_notional_jpy=self.risk.max_notional_jpy,
             )
-            fee_rates = {
-                item.name: float(item.taker_fee_rate) for item in config.exchanges
-            }
+            fee_rates = {item.name: float(item.taker_fee_rate) for item in config.exchanges}
             trade = None
             if opportunities and self._can_execute():
                 trade = self.store.execute_paper_trade(

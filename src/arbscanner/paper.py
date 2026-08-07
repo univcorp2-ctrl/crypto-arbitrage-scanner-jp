@@ -79,10 +79,7 @@ def plan_paper_trade(
     available_btc = balances.get((opportunity.sell_exchange, "BTC"), Decimal("0"))
 
     conservative_rate = (
-        ONE
-        + buy_fee_rate
-        + settings.slippage_bps / BPS
-        + settings.rebalance_reserve_bps / BPS
+        ONE + buy_fee_rate + settings.slippage_bps / BPS + settings.rebalance_reserve_bps / BPS
     )
     max_by_cash = available_jpy / (opportunity.buy_ask * conservative_rate)
     max_by_limit = settings.max_trade_jpy / opportunity.buy_ask
@@ -98,9 +95,7 @@ def plan_paper_trade(
 
     buy_fee = buy_notional * buy_fee_rate
     sell_fee = sell_notional * sell_fee_rate
-    slippage = ((buy_notional + sell_notional) / Decimal("2")) * (
-        settings.slippage_bps / BPS
-    )
+    slippage = ((buy_notional + sell_notional) / Decimal("2")) * (settings.slippage_bps / BPS)
     reserve = ((buy_notional + sell_notional) / Decimal("2")) * (
         settings.rebalance_reserve_bps / BPS
     )
@@ -298,9 +293,7 @@ class PaperTradingService:
                 self.config.exchanges,
                 min_net_bps=threshold,
             )
-            balances = {
-                key: Decimal(str(value)) for key, value in self.store.balance_map().items()
-            }
+            balances = {key: Decimal(str(value)) for key, value in self.store.balance_map().items()}
             plan = None
             for opportunity in opportunities:
                 plan = plan_paper_trade(
@@ -373,20 +366,16 @@ class PaperTradingService:
         sell_credit = Decimal(str(plan["sell_credit_jpy"]))
 
         balances[(buy_exchange, "JPY")] -= buy_debit
-        balances[(buy_exchange, "BTC")] = balances.get(
-            (buy_exchange, "BTC"), Decimal("0")
-        ) + quantity
+        balances[(buy_exchange, "BTC")] = (
+            balances.get((buy_exchange, "BTC"), Decimal("0")) + quantity
+        )
         balances[(sell_exchange, "BTC")] -= quantity
-        balances[(sell_exchange, "JPY")] = balances.get(
-            (sell_exchange, "JPY"), Decimal("0")
-        ) + sell_credit
+        balances[(sell_exchange, "JPY")] = (
+            balances.get((sell_exchange, "JPY"), Decimal("0")) + sell_credit
+        )
 
-        cash = sum(
-            amount for (exchange, asset), amount in balances.items() if asset == "JPY"
-        )
-        btc = sum(
-            amount for (exchange, asset), amount in balances.items() if asset == "BTC"
-        )
+        cash = sum(amount for (exchange, asset), amount in balances.items() if asset == "JPY")
+        btc = sum(amount for (exchange, asset), amount in balances.items() if asset == "BTC")
         crypto_value = btc * reference_price
         equity = cash + crypto_value
         executed_at = timestamp.isoformat()
@@ -539,9 +528,7 @@ class PaperTradingService:
         exchanges = public_exchange_registry()
         error_by_exchange = (self.last_result or {}).get("errors", {})
         for venue in exchanges:
-            venue["runtime_status"] = (
-                "error" if venue["id"] in error_by_exchange else "ready"
-            )
+            venue["runtime_status"] = "error" if venue["id"] in error_by_exchange else "ready"
             venue["last_error"] = error_by_exchange.get(venue["id"])
 
         return {
