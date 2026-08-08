@@ -565,14 +565,18 @@
       "equity_jpy": 4020759.21424244,
       "reference_price_jpy": 10239997.0,
       "source": "public_orderbook_paper"
+    },
+    {
+      "timestamp": "2026-08-08T11:22:05+09:00",
+      "equity_jpy": 4022013.70613927,
+      "reference_price_jpy": 10246369.75,
+      "source": "public_orderbook_paper"
     }
   ],
   "last_scan": {
-    "timestamp": "2026-08-08T09:22:05+09:00",
-    "status": "degraded",
-    "errors": {
-      "gmocoin": "GMO Coin returned error payload: {'status': 5, 'messages': [{'message_code': 'ERR-5201', 'message_string': 'MAINTENANCE. Please wait for a while'}]}"
-    },
+    "timestamp": "2026-08-08T11:22:05+09:00",
+    "status": "healthy",
+    "errors": {},
     "execution_reason": "spread_below_risk_threshold",
     "executed_trade_id": null
   }
