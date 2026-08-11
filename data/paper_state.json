@@ -919,13 +919,19 @@
       "equity_jpy": 4013943.98314752,
       "reference_price_jpy": 10205376.0,
       "source": "public_orderbook_paper"
+    },
+    {
+      "timestamp": "2026-08-11T13:40:15+09:00",
+      "equity_jpy": 4014638.87254312,
+      "reference_price_jpy": 10208906.0,
+      "source": "public_orderbook_paper"
     }
   ],
   "last_scan": {
-    "timestamp": "2026-08-11T11:28:15+09:00",
+    "timestamp": "2026-08-11T13:40:15+09:00",
     "status": "healthy",
     "errors": {},
-    "execution_reason": "spread_below_risk_threshold",
+    "execution_reason": "below_min_trade",
     "executed_trade_id": null
   }
 }
