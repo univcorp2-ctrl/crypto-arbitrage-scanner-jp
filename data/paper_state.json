@@ -949,10 +949,16 @@
       "equity_jpy": 4020125.00463613,
       "reference_price_jpy": 10236775.25,
       "source": "public_orderbook_paper"
+    },
+    {
+      "timestamp": "2026-08-11T20:06:15+09:00",
+      "equity_jpy": 4021051.19574273,
+      "reference_price_jpy": 10241480.25,
+      "source": "public_orderbook_paper"
     }
   ],
   "last_scan": {
-    "timestamp": "2026-08-11T19:13:23+09:00",
+    "timestamp": "2026-08-11T20:06:15+09:00",
     "status": "healthy",
     "errors": {},
     "execution_reason": "spread_below_risk_threshold",
