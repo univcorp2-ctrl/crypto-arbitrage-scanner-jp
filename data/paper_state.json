@@ -1219,13 +1219,19 @@
       "equity_jpy": 3998089.57961298,
       "reference_price_jpy": 10124836.5,
       "source": "public_orderbook_paper"
+    },
+    {
+      "timestamp": "2026-08-14T14:03:10+09:00",
+      "equity_jpy": 3993825.80324291,
+      "reference_price_jpy": 10103176.75,
+      "source": "public_orderbook_paper"
     }
   ],
   "last_scan": {
-    "timestamp": "2026-08-14T11:46:42+09:00",
+    "timestamp": "2026-08-14T14:03:10+09:00",
     "status": "healthy",
     "errors": {},
-    "execution_reason": "spread_below_risk_threshold",
+    "execution_reason": "限度額・在庫・板数量の条件で約定可能数量がありません",
     "executed_trade_id": null
   }
 }
