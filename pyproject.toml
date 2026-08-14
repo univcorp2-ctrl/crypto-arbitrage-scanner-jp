@@ -4,16 +4,16 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "crypto-arbitrage-scanner-jp"
-version = "0.3.0"
-description = "Japan-focused spot and funding-rate arbitrage research, paper execution, and guarded control plane."
+version = "0.4.0"
+description = "Japan-focused spot and multi-venue funding-rate arbitrage research, guarded execution, and operations control plane."
 readme = "README.md"
 requires-python = ">=3.11"
 authors = [{ name = "GitHub-GPT Syncer" }]
 dependencies = [
   "httpx>=0.27,<1",
   "PyYAML>=6.0,<7",
+  "ccxt>=4.5,<5",
 ]
-
 [project.optional-dependencies]
 web = [
   "fastapi>=0.115,<1",
@@ -33,10 +33,10 @@ arbscan = "arbscanner.cli:main"
 arbweb = "arbscanner.web:main"
 fundingweb = "arbscanner.funding_web:main"
 fundingsnapshot = "arbscanner.funding.cli:main"
+fundingmulti = "arbscanner.multivenue_web:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
-
 [tool.setuptools.package-data]
 arbscanner = [
   "static/*.html",
@@ -45,6 +45,9 @@ arbscanner = [
   "funding_static/*.html",
   "funding_static/*.css",
   "funding_static/*.js",
+  "multivenue_static/*.html",
+  "multivenue_static/*.css",
+  "multivenue_static/*.js",
 ]
 
 [tool.pytest.ini_options]
