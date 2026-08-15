@@ -1321,12 +1321,20 @@
       "equity_jpy": 3978859.15536044,
       "reference_price_jpy": 10027147.0,
       "source": "public_orderbook_paper"
+    },
+    {
+      "timestamp": "2026-08-15T10:49:58+09:00",
+      "equity_jpy": 3982108.89518686,
+      "reference_price_jpy": 10043655.5,
+      "source": "public_orderbook_paper"
     }
   ],
   "last_scan": {
-    "timestamp": "2026-08-15T08:37:10+09:00",
-    "status": "healthy",
-    "errors": {},
+    "timestamp": "2026-08-15T10:49:58+09:00",
+    "status": "degraded",
+    "errors": {
+      "gmocoin": "GMO Coin returned error payload: {'status': 5, 'messages': [{'message_code': 'ERR-5201', 'message_string': 'MAINTENANCE. Please wait for a while'}]}"
+    },
     "execution_reason": "限度額・在庫・板数量の条件で約定可能数量がありません",
     "executed_trade_id": null
   }
