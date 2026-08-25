@@ -2797,12 +2797,20 @@
       "equity_jpy": 4488599.06091383,
       "reference_price_jpy": 12616597.75,
       "source": "public_orderbook_paper"
+    },
+    {
+      "timestamp": "2026-08-26T03:57:23+09:00",
+      "equity_jpy": 4484889.12910878,
+      "reference_price_jpy": 12597751.5,
+      "source": "public_orderbook_paper"
     }
   ],
   "last_scan": {
-    "timestamp": "2026-08-26T02:46:00+09:00",
-    "status": "healthy",
-    "errors": {},
+    "timestamp": "2026-08-26T03:57:23+09:00",
+    "status": "degraded",
+    "errors": {
+      "bitflyer": "Server error '503 Service Unavailable' for url 'https://api.bitflyer.com/v1/board?product_code=BTC_JPY'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/503"
+    },
     "execution_reason": "限度額・在庫・板数量の条件で約定可能数量がありません",
     "executed_trade_id": null
   }
