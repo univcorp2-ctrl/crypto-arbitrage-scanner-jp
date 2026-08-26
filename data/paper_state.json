@@ -2923,10 +2923,16 @@
       "equity_jpy": 4466939.96869579,
       "reference_price_jpy": 12506570.75,
       "source": "public_orderbook_paper"
+    },
+    {
+      "timestamp": "2026-08-27T08:33:39+09:00",
+      "equity_jpy": 4478071.92948866,
+      "reference_price_jpy": 12563120.5,
+      "source": "public_orderbook_paper"
     }
   ],
   "last_scan": {
-    "timestamp": "2026-08-27T04:19:15+09:00",
+    "timestamp": "2026-08-27T08:33:39+09:00",
     "status": "healthy",
     "errors": {},
     "execution_reason": "限度額・在庫・板数量の条件で約定可能数量がありません",
